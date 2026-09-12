@@ -1,6 +1,6 @@
-# Architecture
+﻿# Architecture
 
-EnlightenMe is a modular monolith: one Expo mobile app and one Express API sharing a PostgreSQL database.
+Dars is a modular monolith: one Expo mobile app and one Express API sharing a PostgreSQL database.
 
 ```
 Mobile (Expo)  --HTTPS JSON-->  API /api/v1/*  -->  Prisma  -->  Neon PostgreSQL
@@ -35,4 +35,4 @@ The API is the security boundary. Never trust client-supplied price, availabilit
 
 ## Roles
 
-`Student | Parent | Tutor | InstituteAdmin | Admin` — extensible via Prisma enum.
+`Student | Parent | Tutor | InstituteAdmin | Admin` â€” extensible via Prisma enum.

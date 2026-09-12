@@ -1,8 +1,8 @@
-# EnlightenMe (الهمني)
+# Dars (درس)
 
 Bahrain learning marketplace — connect learners with tutors, university educators, and institutes.
 
-**Learn. Teach. Inspire.**
+**Learn. Teach. Grow.**
 
 ## Stack
 
@@ -10,56 +10,49 @@ Bahrain learning marketplace — connect learners with tutors, university educat
 - **Backend:** Node.js, Express, Prisma, PostgreSQL (Neon)
 - **Auth:** Email/password + JWT access/refresh tokens
 
-## Monorepo layout
+## Quick start (recommended)
 
+From the project root, run either:
+
+```powershell
+.\start-app.ps1
 ```
-app/                 Expo Router screens
-src/                 Mobile source (components, features, services, theme, i18n)
-backend/             Express API + Prisma
-docs/                Architecture and developer docs
+
+or:
+
+```cmd
+start-app.cmd
 ```
 
-## Quick start
+This starts the API and Expo together.
 
-### Backend
+### Manual start
 
-```bash
+**Terminal 1 — API**
+```powershell
 cd backend
-cp .env.example .env   # set DATABASE_URL and JWT secrets
-npm install
-npx prisma migrate deploy
-npm run db:seed
 npm run dev
 ```
 
-API: `http://localhost:3001/api/v1/health`
-
-Demo accounts (password `Password123!`):
-
-- `student@enlightenme.app`
-- `zahra.ali@enlightenme.app` (tutor — Blender course)
-- `sara.almansoori@enlightenme.app` (tutor)
-- `admin@enlightenme.app`
-
-### Mobile
-
-```bash
-cp .env.example .env
-npm install
-npm start
+**Terminal 2 — Expo**
+```powershell
+npx expo start
 ```
 
-Set `EXPO_PUBLIC_API_URL` to your machine IP when testing on a physical device.
+Then scan the QR with Expo Go, or press `a` / `i` / `w`.
 
-## Scripts
+## Demo accounts
 
-| Command | Description |
-|---------|-------------|
-| `npm start` | Expo dev server |
-| `npm run typecheck` | TypeScript check (mobile) |
-| `npm run lint` | ESLint |
-| `npm run doctor` | `expo-doctor` |
-| `cd backend && npm run test` | Backend vitest |
+Password for all: `Password123!`
+
+| Email | Role |
+|-------|------|
+| `student@dars.app` | Student |
+| `sara.almansoori@dars.app` | Tutor |
+| `zahra.ali@dars.app` | Tutor |
+| `admin@dars.app` | Admin |
+
+Supported roles in the system: Student, Parent, Tutor, InstituteAdmin, Admin.
 
 ## Documentation
 
@@ -73,5 +66,5 @@ Set `EXPO_PUBLIC_API_URL` to your machine IP when testing on a physical device.
 
 ## Brand
 
-- English: **EnlightenMe**
-- Arabic: **الهمني** (exact spelling)
+- English: **Dars**
+- Arabic: **درس**

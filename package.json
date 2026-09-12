@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "start": "expo start",
+    "start:app": "powershell -ExecutionPolicy Bypass -File ./start-app.ps1",
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",

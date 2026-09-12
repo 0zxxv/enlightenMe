@@ -33,4 +33,12 @@ cd backend && npm run lint && npm test
 
 ## RTL
 
-Switch language in Profile → Language. Arabic uses **الهمني**. Full RTL may require an app reload after `I18nManager.forceRTL`.
+Switch language in Profile → Language. Arabic uses **درس**. Full RTL may require an app reload after `I18nManager.forceRTL`.
+
+## One-command start
+
+```powershell
+.\start-app.ps1
+```
+
+or `start-app.cmd` — starts API + Expo.

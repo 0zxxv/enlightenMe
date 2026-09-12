@@ -1,4 +1,4 @@
-# Database
+﻿# Database
 
 PostgreSQL via Prisma (`backend/prisma/schema.prisma`).
 
@@ -9,9 +9,9 @@ User, StudentProfile, ParentProfile, TutorProfile, Institute, InstituteMember, C
 ## Rules
 
 - Money stored as `Decimal`
-- Migrations only via Prisma — never hand-edit production schema
+- Migrations only via Prisma â€” never hand-edit production schema
 - Seed (`npm run db:seed`) includes ITCS347, Grade 12 Math, and Blender 3D for Beginners (Zahra Ali)
 
 ## Neon
 
-Project identifier: `enlightenme`. Use pooler connection strings for the API. Separate branches for staging/production.
+Project identifier: `Dars`. Use pooler connection strings for the API. Separate branches for staging/production.

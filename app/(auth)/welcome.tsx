@@ -23,9 +23,6 @@ export default function WelcomeScreen() {
             contentFit="contain"
             accessibilityLabel={`${t('brand.name')} ${t('brand.nameAr')}`}
           />
-          <Text style={styles.brandAr}>{t('brand.nameAr')}</Text>
-          <Text style={styles.brand}>{t('brand.name')}</Text>
-          <Text style={styles.tagline}>{t('brand.tagline')}</Text>
           <Text style={styles.subtitle}>{t('auth.welcomeSubtitle')}</Text>
         </SafeAreaView>
       </View>
@@ -81,23 +78,12 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   logo: {
-    width: 120,
-    height: 120,
+    width: '100%',
+    maxWidth: 280,
+    height: 200,
     marginBottom: spacing.md,
     alignSelf: 'flex-start',
-  },
-  brandAr: {
-    ...typography.display,
-    color: colors.lavender,
-  },
-  brand: {
-    ...typography.heading,
-    color: colors.white,
-  },
-  tagline: {
-    ...typography.subheading,
-    color: colors.beige,
-    marginTop: spacing.sm,
+    borderRadius: 16,
   },
   subtitle: {
     ...typography.body,

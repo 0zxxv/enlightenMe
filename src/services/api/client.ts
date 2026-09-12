@@ -1,9 +1,9 @@
-import * as SecureStore from 'expo-secure-store';
 import { env } from '@/config/env';
+import { storageDeleteItem, storageGetItem, storageSetItem } from '@/lib/storage';
 import { ApiError, type ApiErrorResponse } from '@/types/api';
 
-const ACCESS_TOKEN_KEY = 'em_access_token';
-const REFRESH_TOKEN_KEY = 'em_refresh_token';
+const ACCESS_TOKEN_KEY = 'dars_access_token';
+const REFRESH_TOKEN_KEY = 'dars_refresh_token';
 
 type RequestOptions = {
   method?: string;
@@ -19,28 +19,28 @@ let refreshPromise: Promise<string | null> | null = null;
 
 export async function getAccessToken() {
   if (memoryAccessToken) return memoryAccessToken;
-  memoryAccessToken = await SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
+  memoryAccessToken = await storageGetItem(ACCESS_TOKEN_KEY);
   return memoryAccessToken;
 }
 
 export async function getRefreshToken() {
   if (memoryRefreshToken) return memoryRefreshToken;
-  memoryRefreshToken = await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
+  memoryRefreshToken = await storageGetItem(REFRESH_TOKEN_KEY);
   return memoryRefreshToken;
 }
 
 export async function setTokens(accessToken: string, refreshToken: string) {
   memoryAccessToken = accessToken;
   memoryRefreshToken = refreshToken;
-  await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, accessToken);
-  await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, refreshToken);
+  await storageSetItem(ACCESS_TOKEN_KEY, accessToken);
+  await storageSetItem(REFRESH_TOKEN_KEY, refreshToken);
 }
 
 export async function clearTokens() {
   memoryAccessToken = null;
   memoryRefreshToken = null;
-  await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);
-  await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
+  await storageDeleteItem(ACCESS_TOKEN_KEY);
+  await storageDeleteItem(REFRESH_TOKEN_KEY);
 }
 
 async function refreshAccessToken(): Promise<string | null> {

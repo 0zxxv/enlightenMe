@@ -1,4 +1,4 @@
-# Deployment
+﻿# Deployment
 
 ## API
 
@@ -10,9 +10,9 @@
 
 EAS profiles in `eas.json`:
 
-- `development` — dev client
-- `preview` — internal distribution
-- `production` — store builds
+- `development` â€” dev client
+- `preview` â€” internal distribution
+- `production` â€” store builds
 
 ```bash
 eas build --profile preview --platform android
@@ -20,7 +20,7 @@ eas build --profile production --platform all
 eas submit --profile production
 ```
 
-Bundle IDs: `com.enlightenme.app`
+Bundle IDs: `com.Dars.app`
 
 Configure a real EAS `projectId` in `app.config.ts` before store submission.
 

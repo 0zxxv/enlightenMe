@@ -37,7 +37,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         await refreshUser();
       } catch {
-        await clearTokens();
+        try {
+          await clearTokens();
+        } catch {
+          // Storage may be unavailable on some platforms; ignore.
+        }
         setUser(null);
       } finally {
         setIsLoading(false);
