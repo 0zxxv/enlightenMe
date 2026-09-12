@@ -24,20 +24,16 @@ or:
 start-app.cmd
 ```
 
-This starts the API and Expo together.
+This starts Expo. It only starts a local API if `.env` still points at `localhost`.
 
-### Manual start
+### Live API (no local backend)
 
-**Terminal 1 — API**
-```powershell
-cd backend
-npm run dev
-```
-
-**Terminal 2 — Expo**
-```powershell
-npx expo start
-```
+1. Deploy with Render using [`render.yaml`](render.yaml) — see [docs/deployment.md](docs/deployment.md).
+2. Set in root `.env`:
+   ```env
+   EXPO_PUBLIC_API_URL=https://YOUR-SERVICE.onrender.com/api/v1
+   ```
+3. Run `npx expo start` (or `.\start-app.ps1`).
 
 Then scan the QR with Expo Go, or press `a` / `i` / `w`.
 

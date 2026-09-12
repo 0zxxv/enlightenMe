@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import {
@@ -56,9 +57,17 @@ export default function HomeScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         <View style={styles.header}>
-          <View>
-            <Text style={styles.greeting}>{greeting}</Text>
-            <Text style={styles.name}>{user?.firstName ?? t('brand.name')}</Text>
+          <View style={styles.headerLeft}>
+            <Image
+              source={require('../../assets/images/dars_icon.png')}
+              style={styles.brandIcon}
+              contentFit="contain"
+              accessibilityLabel={t('brand.name')}
+            />
+            <View>
+              <Text style={styles.greeting}>{greeting}</Text>
+              <Text style={styles.name}>{user?.firstName ?? t('brand.name')}</Text>
+            </View>
           </View>
           <IconButton name="notifications-outline" onPress={() => undefined} />
         </View>
@@ -138,6 +147,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    flex: 1,
+  },
+  brandIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
   },
   greeting: { ...typography.caption, color: colors.textSecondary },
   name: { ...typography.heading, color: colors.text },

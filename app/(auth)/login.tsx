@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { Link, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -55,6 +56,12 @@ export default function LoginScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          <Image
+            source={require('../../assets/images/dars_icon.png')}
+            style={styles.icon}
+            contentFit="contain"
+            accessibilityLabel={t('brand.name')}
+          />
           <Text style={styles.brand}>{t('brand.nameAr')}</Text>
           <Text style={styles.title}>{t('auth.login')}</Text>
           <View style={styles.form}>
@@ -94,6 +101,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.xxl, gap: spacing.lg },
+  icon: { width: 72, height: 72, borderRadius: 16 },
   brand: { ...typography.heading, color: colors.primary },
   title: { ...typography.display, color: colors.text, fontSize: 32 },
   form: { gap: spacing.lg, marginTop: spacing.md },

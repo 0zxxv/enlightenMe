@@ -1,34 +1,34 @@
-﻿# Deployment
+﻿# Backend deployment (Render)
 
-## API
+The Dars API is designed to run on **Render** (free web service) against Neon PostgreSQL.
 
-1. Set production env vars (Neon production branch, strong JWT secrets, restricted `CORS_ORIGIN`).
-2. `cd backend && npm ci && npx prisma migrate deploy && npm run build && npm start`
-3. Host on any Node-capable platform (Railway, Fly, Render, etc.).
+## One-time setup
 
-## Mobile
+1. Push this repo to GitHub.
+2. Open [https://dashboard.render.com](https://dashboard.render.com) → **New** → **Blueprint**.
+3. Connect the GitHub repo and select `render.yaml`.
+4. Set **DATABASE_URL** to your Neon connection string (same as local `backend/.env`).
+5. Deploy. Note the public URL, e.g. `https://dars-api.onrender.com`.
 
-EAS profiles in `eas.json`:
+## Point the mobile app at it
 
-- `development` â€” dev client
-- `preview` â€” internal distribution
-- `production` â€” store builds
+In the project root `.env`:
 
-```bash
-eas build --profile preview --platform android
-eas build --profile production --platform all
-eas submit --profile production
+```env
+EXPO_PUBLIC_API_URL=https://YOUR-SERVICE.onrender.com/api/v1
 ```
 
-Bundle IDs: `com.Dars.app`
+Then restart Expo (`npx expo start`). You no longer need `cd backend && npm run dev` for day-to-day app use.
 
-Configure a real EAS `projectId` in `app.config.ts` before store submission.
+## Manual Node service (without Blueprint)
 
-## Checklist
+- **Root directory:** `backend`
+- **Build:** `npm ci && npx prisma generate && npm run build`
+- **Start:** `npx prisma migrate deploy && npm start`
+- **Health check:** `/api/v1/health`
 
-- [ ] Secrets only in server env
-- [ ] Migrations applied
-- [ ] Seed not run against production unintentionally
-- [ ] App icons / splash / store metadata
-- [ ] `expo-doctor` clean
-- [ ] Payment provider credentials when leaving stub mode
+## Notes
+
+- Free Render services sleep after idle time; the first request may take ~30–60s.
+- Keep JWT secrets only on the server — never in the mobile app.
+- After deploy, optionally seed once: from your machine with production `DATABASE_URL`, run `npm run db:seed` in `backend/` (or use Render shell).
