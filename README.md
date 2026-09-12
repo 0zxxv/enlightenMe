@@ -35,6 +35,14 @@ This starts Expo. It only starts a local API if `.env` still points at `localhos
    ```
 3. Run `npx expo start` (or `.\start-app.ps1`).
 
+## Web on Netlify
+
+See [docs/netlify.md](docs/netlify.md). Short version:
+
+1. Connect the GitHub repo in Netlify (uses `netlify.toml`).
+2. Set env `EXPO_PUBLIC_API_URL` to your Render API `/api/v1` URL.
+3. Deploy — site publishes from `dist/`.
+
 Then scan the QR with Expo Go, or press `a` / `i` / `w`.
 
 ## Demo accounts
