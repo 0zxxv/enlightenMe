@@ -1,0 +1,203 @@
+{
+  "brand": {
+    "name": "Dars",
+    "nameAr": "درس",
+    "tagline": "Learn. Teach. Grow."
+  },
+  "common": {
+    "loading": "Loading…",
+    "retry": "Try again",
+    "cancel": "Cancel",
+    "save": "Save",
+    "continue": "Continue",
+    "confirm": "Confirm",
+    "back": "Back",
+    "search": "Search",
+    "seeAll": "See all",
+    "empty": "Nothing here yet",
+    "error": "Something went wrong",
+    "pullToRefresh": "Pull to refresh",
+    "online": "Online",
+    "inPerson": "In person",
+    "hybrid": "Hybrid",
+    "verified": "Verified",
+    "bookNow": "Book now",
+    "logout": "Log out",
+    "currency": "BHD"
+  },
+  "tabs": {
+    "home": "Home",
+    "explore": "Explore",
+    "messages": "Messages",
+    "bookings": "Bookings",
+    "profile": "Profile"
+  },
+  "auth": {
+    "welcomeTitle": "Welcome to Dars",
+    "welcomeSubtitle": "Discover tutors, institutes, and courses tailored for Bahrain learners.",
+    "getStarted": "Get started",
+    "haveAccount": "I already have an account",
+    "login": "Log in",
+    "register": "Create account",
+    "email": "Email",
+    "password": "Password",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "phone": "Phone (optional)",
+    "role": "I am a",
+    "student": "Student",
+    "tutor": "Tutor",
+    "parent": "Parent",
+    "forgotPassword": "Forgot password?",
+    "forgotTitle": "Reset password",
+    "forgotSubtitle": "Enter your email and we will send reset instructions.",
+    "sendReset": "Send reset link",
+    "resetSent": "If an account exists, reset instructions were sent.",
+    "verificationTitle": "Verify your email",
+    "verificationSubtitle": "We sent a verification code to your inbox. Enter it to continue.",
+    "verificationCode": "Verification code",
+    "verify": "Verify",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "invalidEmail": "Enter a valid email",
+    "passwordRequired": "Password is required",
+    "passwordMin": "Password must be at least 8 characters",
+    "nameRequired": "This field is required"
+  },
+  "home": {
+    "goodMorning": "Good morning",
+    "goodAfternoon": "Good afternoon",
+    "goodEvening": "Good evening",
+    "searchPlaceholder": "Search courses, tutors, institutes",
+    "school": "School",
+    "university": "University",
+    "skills": "Skills",
+    "institutes": "Institutes",
+    "promoTitle": "Learn without limits",
+    "promoSubtitle": "Book private or group sessions with verified tutors.",
+    "popularSubjects": "Popular subjects",
+    "featuredCourses": "Featured courses"
+  },
+  "explore": {
+    "title": "Explore",
+    "all": "All",
+    "courses": "Courses",
+    "tutors": "Tutors",
+    "institutes": "Institutes",
+    "filters": "Filters",
+    "applyFilters": "Apply filters",
+    "clearFilters": "Clear",
+    "type": "Type",
+    "format": "Format",
+    "category": "Category",
+    "private": "Private",
+    "group": "Group",
+    "institute": "Institute"
+  },
+  "course": {
+    "about": "About",
+    "curriculum": "Curriculum",
+    "reviews": "Reviews",
+    "sessions": "Available sessions",
+    "by": "by",
+    "noReviews": "No reviews yet",
+    "noCurriculum": "Curriculum coming soon"
+  },
+  "tutor": {
+    "students": "Students",
+    "courses": "Courses",
+    "rating": "Rating",
+    "expertise": "Expertise",
+    "about": "About",
+    "noBio": "No bio yet"
+  },
+  "institute": {
+    "about": "About",
+    "courses": "Courses",
+    "members": "Members"
+  },
+  "booking": {
+    "title": "Book session",
+    "summary": "Summary",
+    "selectDate": "Select date",
+    "selectTime": "Select time",
+    "paymentMethod": "Payment method",
+    "confirm": "Confirm booking",
+    "card": "Card",
+    "applePay": "Apple Pay",
+    "benefitPay": "BenefitPay",
+    "pendingPayment": "Payment pending confirmation",
+    "successTitle": "Booking created",
+    "successSubtitle": "Your session is reserved. Complete payment if still pending.",
+    "viewBookings": "View bookings",
+    "noSessions": "No upcoming sessions"
+  },
+  "bookings": {
+    "title": "My bookings",
+    "upcoming": "Upcoming",
+    "past": "Past",
+    "emptyUpcoming": "No upcoming bookings",
+    "emptyPast": "No past bookings",
+    "status": "Status"
+  },
+  "messages": {
+    "title": "Messages",
+    "empty": "No conversations yet",
+    "emptyHint": "Message a tutor after booking a session.",
+    "placeholder": "Write a message…",
+    "send": "Send"
+  },
+  "profile": {
+    "title": "Profile",
+    "settings": "Settings",
+    "language": "Language",
+    "favorites": "Favorites",
+    "tutorDashboard": "Tutor dashboard",
+    "instituteDashboard": "Institute dashboard",
+    "version": "Version"
+  },
+  "favorites": {
+    "title": "Favorites",
+    "empty": "No favorites yet"
+  },
+  "settings": {
+    "title": "Settings",
+    "language": "Language",
+    "languageHint": "Switching to Arabic enables RTL layout.",
+    "english": "English",
+    "arabic": "Arabic",
+    "restartHint": "You may need to reload the app for RTL to fully apply."
+  },
+  "tutorDashboard": {
+    "title": "Tutor dashboard",
+    "overview": "Overview",
+    "courses": "My courses",
+    "createCourse": "Create course",
+    "bookings": "Upcoming sessions",
+    "students": "Students",
+    "earnings": "Earnings",
+    "profile": "Tutor profile",
+    "verification": "Verification",
+    "paidTotal": "Paid total",
+    "pendingPayout": "Pending payout",
+    "emptyCourses": "No courses yet",
+    "emptyStudents": "No students yet",
+    "emptyBookings": "No upcoming sessions",
+    "verificationStatus": "Verification status",
+    "verificationHint": "Upload identity documents from the web portal to complete verification.",
+    "createTitle": "New course",
+    "createSubmit": "Create draft",
+    "courseTitle": "Course title",
+    "description": "Description",
+    "price": "Price (BHD)",
+    "categoryId": "Category ID"
+  },
+  "instituteDashboard": {
+    "title": "Institute dashboard",
+    "placeholder": "Institute tools are coming soon."
+  },
+  "errors": {
+    "network": "Unable to reach the server. Check your connection.",
+    "unauthorized": "Please log in again."
+  }
+}

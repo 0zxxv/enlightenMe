@@ -1,0 +1,203 @@
+{
+  "brand": {
+    "name": "Dars",
+    "nameAr": "درس",
+    "tagline": "تعلّم. علّم. انمُ."
+  },
+  "common": {
+    "loading": "جارٍ التحميل…",
+    "retry": "أعد المحاولة",
+    "cancel": "إلغاء",
+    "save": "حفظ",
+    "continue": "متابعة",
+    "confirm": "تأكيد",
+    "back": "رجوع",
+    "search": "بحث",
+    "seeAll": "عرض الكل",
+    "empty": "لا يوجد شيء هنا بعد",
+    "error": "حدث خطأ ما",
+    "pullToRefresh": "اسحب للتحديث",
+    "online": "عن بعد",
+    "inPerson": "حضوري",
+    "hybrid": "هجين",
+    "verified": "موثّق",
+    "bookNow": "احجز الآن",
+    "logout": "تسجيل الخروج",
+    "currency": "د.ب"
+  },
+  "tabs": {
+    "home": "الرئيسية",
+    "explore": "استكشاف",
+    "messages": "الرسائل",
+    "bookings": "الحجوزات",
+    "profile": "الملف"
+  },
+  "auth": {
+    "welcomeTitle": "مرحبًا بك في درس",
+    "welcomeSubtitle": "اكتشف مدرّسين ومعاهد ودورات مصممة لمتعلمين في البحرين.",
+    "getStarted": "ابدأ الآن",
+    "haveAccount": "لدي حساب بالفعل",
+    "login": "تسجيل الدخول",
+    "register": "إنشاء حساب",
+    "email": "البريد الإلكتروني",
+    "password": "كلمة المرور",
+    "firstName": "الاسم الأول",
+    "lastName": "اسم العائلة",
+    "phone": "الهاتف (اختياري)",
+    "role": "أنا",
+    "student": "طالب",
+    "tutor": "مدرّس",
+    "parent": "ولي أمر",
+    "forgotPassword": "نسيت كلمة المرور؟",
+    "forgotTitle": "إعادة تعيين كلمة المرور",
+    "forgotSubtitle": "أدخل بريدك وسنرسل تعليمات إعادة التعيين.",
+    "sendReset": "إرسال الرابط",
+    "resetSent": "إذا كان الحساب موجودًا، تم إرسال التعليمات.",
+    "verificationTitle": "تحقق من بريدك",
+    "verificationSubtitle": "أرسلنا رمز تحقق إلى بريدك. أدخله للمتابعة.",
+    "verificationCode": "رمز التحقق",
+    "verify": "تحقق",
+    "noAccount": "ليس لديك حساب؟",
+    "hasAccount": "لديك حساب بالفعل؟",
+    "invalidEmail": "أدخل بريدًا صالحًا",
+    "passwordRequired": "كلمة المرور مطلوبة",
+    "passwordMin": "يجب أن تكون كلمة المرور 8 أحرف على الأقل",
+    "nameRequired": "هذا الحقل مطلوب"
+  },
+  "home": {
+    "goodMorning": "صباح الخير",
+    "goodAfternoon": "مساء الخير",
+    "goodEvening": "مساء الخير",
+    "searchPlaceholder": "ابحث عن دورات أو مدرّسين أو معاهد",
+    "school": "مدارس",
+    "university": "جامعة",
+    "skills": "مهارات",
+    "institutes": "معاهد",
+    "promoTitle": "تعلّم بلا حدود",
+    "promoSubtitle": "احجز جلسات خاصة أو جماعية مع مدرّسين موثّقين.",
+    "popularSubjects": "مواد شائعة",
+    "featuredCourses": "دورات مميزة"
+  },
+  "explore": {
+    "title": "استكشاف",
+    "all": "الكل",
+    "courses": "دورات",
+    "tutors": "مدرّسون",
+    "institutes": "معاهد",
+    "filters": "تصفية",
+    "applyFilters": "تطبيق",
+    "clearFilters": "مسح",
+    "type": "النوع",
+    "format": "الصيغة",
+    "category": "الفئة",
+    "private": "خاص",
+    "group": "مجموعة",
+    "institute": "معهد"
+  },
+  "course": {
+    "about": "نبذة",
+    "curriculum": "المنهج",
+    "reviews": "التقييمات",
+    "sessions": "الجلسات المتاحة",
+    "by": "بواسطة",
+    "noReviews": "لا توجد تقييمات بعد",
+    "noCurriculum": "المنهج قريبًا"
+  },
+  "tutor": {
+    "students": "طلاب",
+    "courses": "دورات",
+    "rating": "التقييم",
+    "expertise": "الخبرات",
+    "about": "نبذة",
+    "noBio": "لا توجد نبذة بعد"
+  },
+  "institute": {
+    "about": "نبذة",
+    "courses": "دورات",
+    "members": "الأعضاء"
+  },
+  "booking": {
+    "title": "حجز جلسة",
+    "summary": "الملخص",
+    "selectDate": "اختر التاريخ",
+    "selectTime": "اختر الوقت",
+    "paymentMethod": "طريقة الدفع",
+    "confirm": "تأكيد الحجز",
+    "card": "بطاقة",
+    "applePay": "Apple Pay",
+    "benefitPay": "بنفت باي",
+    "pendingPayment": "الدفع بانتظار التأكيد",
+    "successTitle": "تم إنشاء الحجز",
+    "successSubtitle": "تم حجز جلستك. أكمل الدفع إن كان لا يزال معلّقًا.",
+    "viewBookings": "عرض الحجوزات",
+    "noSessions": "لا توجد جلسات قادمة"
+  },
+  "bookings": {
+    "title": "حجوزاتي",
+    "upcoming": "القادمة",
+    "past": "السابقة",
+    "emptyUpcoming": "لا توجد حجوزات قادمة",
+    "emptyPast": "لا توجد حجوزات سابقة",
+    "status": "الحالة"
+  },
+  "messages": {
+    "title": "الرسائل",
+    "empty": "لا توجد محادثات بعد",
+    "emptyHint": "راسل المدرّس بعد حجز جلسة.",
+    "placeholder": "اكتب رسالة…",
+    "send": "إرسال"
+  },
+  "profile": {
+    "title": "الملف الشخصي",
+    "settings": "الإعدادات",
+    "language": "اللغة",
+    "favorites": "المفضلة",
+    "tutorDashboard": "لوحة المدرّس",
+    "instituteDashboard": "لوحة المعهد",
+    "version": "الإصدار"
+  },
+  "favorites": {
+    "title": "المفضلة",
+    "empty": "لا توجد مفضلات بعد"
+  },
+  "settings": {
+    "title": "الإعدادات",
+    "language": "اللغة",
+    "languageHint": "التبديل إلى العربية يفعّل اتجاه RTL.",
+    "english": "English",
+    "arabic": "العربية",
+    "restartHint": "قد تحتاج لإعادة تحميل التطبيق لتطبيق RTL بالكامل."
+  },
+  "tutorDashboard": {
+    "title": "لوحة المدرّس",
+    "overview": "نظرة عامة",
+    "courses": "دوراتي",
+    "createCourse": "إنشاء دورة",
+    "bookings": "الجلسات القادمة",
+    "students": "الطلاب",
+    "earnings": "الأرباح",
+    "profile": "ملف المدرّس",
+    "verification": "التوثيق",
+    "paidTotal": "إجمالي المدفوع",
+    "pendingPayout": "مدفوعات معلّقة",
+    "emptyCourses": "لا توجد دورات بعد",
+    "emptyStudents": "لا يوجد طلاب بعد",
+    "emptyBookings": "لا توجد جلسات قادمة",
+    "verificationStatus": "حالة التوثيق",
+    "verificationHint": "ارفع مستندات الهوية من بوابة الويب لإكمال التوثيق.",
+    "createTitle": "دورة جديدة",
+    "createSubmit": "إنشاء مسودة",
+    "courseTitle": "عنوان الدورة",
+    "description": "الوصف",
+    "price": "السعر (د.ب)",
+    "categoryId": "معرّف الفئة"
+  },
+  "instituteDashboard": {
+    "title": "لوحة المعهد",
+    "placeholder": "أدوات المعهد قادمة قريبًا."
+  },
+  "errors": {
+    "network": "تعذر الوصول إلى الخادم. تحقق من اتصالك.",
+    "unauthorized": "يرجى تسجيل الدخول مرة أخرى."
+  }
+}
