@@ -91,11 +91,20 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     }
   }
 
-  const response = await fetch(`${env.apiUrl}${path}`, {
-    method,
-    headers: requestHeaders,
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${env.apiUrl}${path}`, {
+      method,
+      headers: requestHeaders,
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+  } catch {
+    throw new ApiError(
+      'NETWORK_ERROR',
+      'Unable to reach the server. Check your connection.',
+      0,
+    );
+  }
 
   if (response.status === 401 && auth && !skipRefresh) {
     const newToken = await refreshAccessToken();
@@ -105,7 +114,16 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
   }
 
   const text = await response.text();
-  const json = text ? (JSON.parse(text) as T | ApiErrorResponse) : ({} as T);
+  let json: T | ApiErrorResponse;
+  try {
+    json = text ? (JSON.parse(text) as T | ApiErrorResponse) : ({} as T);
+  } catch {
+    throw new ApiError(
+      'INVALID_RESPONSE',
+      `Unexpected response from server (${response.status}).`,
+      response.status,
+    );
+  }
 
   if (!response.ok) {
     const errorBody = json as ApiErrorResponse;
