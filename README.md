@@ -31,7 +31,7 @@ This starts Expo. It only starts a local API if `.env` still points at `localhos
 1. Deploy with Render using [`render.yaml`](render.yaml) — see [docs/deployment.md](docs/deployment.md).
 2. Set in root `.env`:
    ```env
-   EXPO_PUBLIC_API_URL=https://YOUR-SERVICE.onrender.com/api/v1
+   EXPO_PUBLIC_API_URL=https://dars-api-oqtb.onrender.com/api/v1
    ```
 3. Run `npx expo start` (or `.\start-app.ps1`).
 
@@ -40,7 +40,7 @@ This starts Expo. It only starts a local API if `.env` still points at `localhos
 See [docs/netlify.md](docs/netlify.md). Short version:
 
 1. Connect the GitHub repo in Netlify (uses `netlify.toml`).
-2. Set env `EXPO_PUBLIC_API_URL` to your Render API `/api/v1` URL.
+2. `EXPO_PUBLIC_API_URL` is set in `netlify.toml` to the Render API (`https://dars-api-oqtb.onrender.com/api/v1`).
 3. Deploy — site publishes from `dist/`.
 
 Then scan the QR with Expo Go, or press `a` / `i` / `w`.
