@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { Pressable, StyleSheet, TextInput, View, type ViewStyle } from 'react-native';
+import { useTranslation } from '@/i18n';
 import { colors, radius, shadows, spacing, typography } from '@/theme';
 
 type Props = {
@@ -23,6 +24,8 @@ export function SearchBar({
   onTrailingPress,
   style,
 }: Props) {
+  const { isRTL } = useTranslation();
+
   return (
     <View style={[styles.wrap, style]}>
       <Ionicons name="search" size={20} color={colors.textMuted} />
@@ -31,7 +34,7 @@ export function SearchBar({
         onChangeText={onChangeText}
         placeholder={placeholder}
         placeholderTextColor={colors.textMuted}
-        style={styles.input}
+        style={[styles.input, { textAlign: isRTL ? 'right' : 'left', writingDirection: isRTL ? 'rtl' : 'ltr' }]}
         returnKeyType="search"
         onSubmitEditing={onSubmit}
       />

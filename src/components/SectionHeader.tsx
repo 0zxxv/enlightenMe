@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from '@/i18n';
 import { colors, spacing, typography } from '@/theme';
 
 type Props = {
@@ -9,9 +10,18 @@ type Props = {
 };
 
 export function SectionHeader({ title, actionLabel, onAction }: Props) {
+  const { isRTL } = useTranslation();
+
   return (
     <View style={styles.row}>
-      <Text style={styles.title}>{title}</Text>
+      <Text
+        style={[
+          styles.title,
+          { textAlign: isRTL ? 'right' : 'left', writingDirection: isRTL ? 'rtl' : 'ltr' },
+        ]}
+      >
+        {title}
+      </Text>
       {actionLabel && onAction ? (
         <Text onPress={onAction} style={styles.action}>
           {actionLabel}
@@ -31,6 +41,7 @@ const styles = StyleSheet.create({
   title: {
     ...typography.subheading,
     color: colors.text,
+    flex: 1,
   },
   action: {
     ...typography.caption,

@@ -5,6 +5,7 @@ import {
   FlatList,
   Pressable,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -26,12 +27,12 @@ import { useLayout } from '@/hooks/useLayout';
 import { useRefresh } from '@/hooks/useRefresh';
 import { useTranslation } from '@/i18n';
 import { colors, radius, spacing, typography } from '@/theme';
-import type { CourseType } from '@/types/models';
+import type { Course, CourseType, Institute, Tutor } from '@/types/models';
 
 type ExploreTab = 'all' | 'courses' | 'tutors' | 'institutes';
 
 export default function ExploreScreen() {
-  const { t } = useTranslation();
+  const { t, isRTL } = useTranslation();
   const layout = useLayout();
   const params = useLocalSearchParams<{ q?: string; tab?: string; type?: string }>();
   const [tab, setTab] = useState<ExploreTab>((params.tab as ExploreTab) || 'courses');
@@ -81,41 +82,46 @@ export default function ExploreScreen() {
 
   const isError = coursesQuery.isError || tutorsQuery.isError || institutesQuery.isError;
 
+  const courses = coursesQuery.data?.data ?? [];
+  const tutors = tutorsQuery.data?.data ?? [];
+  const institutes = institutesQuery.data?.data ?? [];
+
   const listData = useMemo(() => {
     if (tab === 'courses') {
-      return (coursesQuery.data?.data ?? []).map((item) => ({ kind: 'course' as const, item }));
+      return courses.map((item) => ({ kind: 'course' as const, item }));
     }
     if (tab === 'tutors') {
-      return (tutorsQuery.data?.data ?? []).map((item) => ({ kind: 'tutor' as const, item }));
+      return tutors.map((item) => ({ kind: 'tutor' as const, item }));
     }
     if (tab === 'institutes') {
-      return (institutesQuery.data?.data ?? []).map((item) => ({
-        kind: 'institute' as const,
-        item,
-      }));
+      return institutes.map((item) => ({ kind: 'institute' as const, item }));
     }
-    return [
-      ...(coursesQuery.data?.data ?? []).map((item) => ({ kind: 'course' as const, item })),
-      ...(tutorsQuery.data?.data ?? []).map((item) => ({ kind: 'tutor' as const, item })),
-      ...(institutesQuery.data?.data ?? []).map((item) => ({
-        kind: 'institute' as const,
-        item,
-      })),
-    ];
-  }, [tab, coursesQuery.data, tutorsQuery.data, institutesQuery.data]);
+    return [];
+  }, [tab, courses, tutors, institutes]);
 
   const courseGap = spacing.md;
-  const showCourseGrid = tab === 'courses';
-  const columns = showCourseGrid ? layout.courseColumns : 1;
+  const columns = layout.courseColumns;
+  const writing = {
+    textAlign: (isRTL ? 'right' : 'left') as 'left' | 'right',
+    writingDirection: (isRTL ? 'rtl' : 'ltr') as 'rtl' | 'ltr',
+  };
 
-  const sectionTitle =
-    tab === 'tutors'
-      ? t('explore.tutors')
-      : tab === 'institutes'
-        ? t('explore.institutes')
-        : tab === 'all'
-          ? t('explore.all')
-          : t('explore.courses');
+  const renderCourseGrid = (items: Course[]) => (
+    <View style={[styles.courseGrid, { marginHorizontal: -courseGap / 2 }]}>
+      {items.map((course) => (
+        <View
+          key={course.id}
+          style={{
+            width: `${100 / columns}%` as `${number}%`,
+            paddingHorizontal: courseGap / 2,
+            marginBottom: courseGap,
+          }}
+        >
+          <CourseCard course={course} variant="featured" />
+        </View>
+      ))}
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -132,7 +138,7 @@ export default function ExploreScreen() {
         ]}
       >
         <View style={styles.header}>
-          <Text style={styles.title}>{t('explore.title')}</Text>
+          <Text style={[styles.title, writing]}>{t('explore.title')}</Text>
         </View>
 
         <SearchBar
@@ -207,8 +213,6 @@ export default function ExploreScreen() {
           })}
         </View>
 
-        <SectionHeader title={sectionTitle} />
-
         {isError && !isLoading ? (
           <ErrorState
             onRetry={() => {
@@ -219,56 +223,98 @@ export default function ExploreScreen() {
           />
         ) : null}
 
-        {isLoading && !listData.length ? (
+        {isLoading ? (
           <LoadingState />
-        ) : !isError ? (
-          <FlatList
-            key={showCourseGrid ? `courses-${columns}` : `list-${tab}`}
-            data={listData}
-            keyExtractor={(row, index) => `${row.kind}-${'id' in row.item ? row.item.id : index}`}
-            numColumns={columns}
+        ) : !isError && tab === 'all' ? (
+          <ScrollView
             contentContainerStyle={styles.list}
-            columnWrapperStyle={columns > 1 ? styles.columnWrap : undefined}
             refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-            ListEmptyComponent={
-              <EmptyState title={t('common.empty')} subtitle={t('home.emptyCoursesHint')} />
-            }
             showsVerticalScrollIndicator={false}
-            renderItem={({ item: row }) => {
-              if (showCourseGrid && row.kind === 'course') {
-                return (
-                  <View
-                    style={{
-                      width: `${100 / columns}%` as `${number}%`,
-                      paddingHorizontal: courseGap / 2,
-                      marginBottom: courseGap,
-                    }}
-                  >
-                    <CourseCard course={row.item} variant="featured" />
-                  </View>
-                );
-              }
-              if (row.kind === 'course') {
-                return (
-                  <View style={styles.listItem}>
-                    <CourseCard course={row.item} variant="featured" />
-                  </View>
-                );
-              }
-              if (row.kind === 'tutor') {
-                return (
-                  <View style={styles.listItem}>
-                    <TutorCard tutor={row.item} />
-                  </View>
-                );
-              }
-              return (
-                <View style={styles.listItem}>
-                  <InstituteCard institute={row.item} />
+          >
+            <SectionHeader title={t('explore.courses')} />
+            {courses.length ? (
+              renderCourseGrid(courses)
+            ) : (
+              <EmptyState title={t('common.empty')} subtitle={t('home.emptyCoursesHint')} />
+            )}
+
+            <SectionHeader title={t('explore.tutors')} />
+            {tutors.length ? (
+              tutors.map((tutor: Tutor) => (
+                <View key={tutor.id} style={styles.listItem}>
+                  <TutorCard tutor={tutor} />
                 </View>
-              );
-            }}
-          />
+              ))
+            ) : (
+              <EmptyState title={t('common.empty')} />
+            )}
+
+            <SectionHeader title={t('explore.institutes')} />
+            {institutes.length ? (
+              institutes.map((institute: Institute) => (
+                <View key={institute.id} style={styles.listItem}>
+                  <InstituteCard institute={institute} />
+                </View>
+              ))
+            ) : (
+              <EmptyState title={t('common.empty')} />
+            )}
+          </ScrollView>
+        ) : !isError ? (
+          <>
+            <SectionHeader
+              title={
+                tab === 'tutors'
+                  ? t('explore.tutors')
+                  : tab === 'institutes'
+                    ? t('explore.institutes')
+                    : t('explore.courses')
+              }
+            />
+            <FlatList
+              key={`explore-${tab}-${columns}`}
+              data={listData}
+              keyExtractor={(row) => `${row.kind}-${row.item.id}`}
+              numColumns={tab === 'courses' ? columns : 1}
+              contentContainerStyle={styles.list}
+              columnWrapperStyle={tab === 'courses' && columns > 1 ? styles.columnWrap : undefined}
+              refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+              ListEmptyComponent={
+                <EmptyState title={t('common.empty')} subtitle={t('home.emptyCoursesHint')} />
+              }
+              showsVerticalScrollIndicator={false}
+              renderItem={({ item: row }) => {
+                if (tab === 'courses' && row.kind === 'course') {
+                  return (
+                    <View
+                      style={{
+                        width: `${100 / columns}%` as `${number}%`,
+                        paddingHorizontal: courseGap / 2,
+                        marginBottom: courseGap,
+                      }}
+                    >
+                      <CourseCard course={row.item} variant="featured" />
+                    </View>
+                  );
+                }
+                if (row.kind === 'tutor') {
+                  return (
+                    <View style={styles.listItem}>
+                      <TutorCard tutor={row.item} />
+                    </View>
+                  );
+                }
+                if (row.kind === 'institute') {
+                  return (
+                    <View style={styles.listItem}>
+                      <InstituteCard institute={row.item} />
+                    </View>
+                  );
+                }
+                return null;
+              }}
+            />
+          </>
         ) : null}
       </View>
     </SafeAreaView>
@@ -355,9 +401,14 @@ const styles = StyleSheet.create({
   list: {
     paddingBottom: spacing.massive,
     flexGrow: 1,
+    gap: spacing.sm,
   },
   columnWrap: {
     marginHorizontal: -spacing.md / 2,
+  },
+  courseGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
   },
   listItem: {
     marginBottom: spacing.md,

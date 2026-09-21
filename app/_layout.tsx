@@ -5,6 +5,7 @@ import * as SystemUI from 'expo-system-ui';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
 import { LoadingState } from '@/components/LoadingState';
+import { RtlShell } from '@/components/RtlShell';
 import { AuthProvider, useAuth } from '@/features/auth/AuthContext';
 import { I18nProvider, useI18n } from '@/i18n';
 import { colors } from '@/theme';
@@ -73,35 +74,37 @@ function AuthGate({ children }: { children: React.ReactNode }) {
 
 function RootNavigator() {
   return (
-    <AuthGate>
-      <StatusBar style="dark" />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: colors.background },
-          headerTintColor: colors.primary,
-          headerStyle: { backgroundColor: colors.background },
-          headerShadowVisible: false,
-        }}
-      >
-        <Stack.Screen name="index" />
-        <Stack.Screen name="(auth)" />
-        <Stack.Screen name="dev-mode" />
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="course/[id]" options={{ headerShown: false }} />
-        <Stack.Screen name="tutor/[id]" options={{ headerShown: true, title: '' }} />
-        <Stack.Screen name="institute/[id]" options={{ headerShown: true, title: '' }} />
-        <Stack.Screen name="booking/[courseId]" options={{ headerShown: true, title: '' }} />
-        <Stack.Screen name="booking/confirmation" options={{ headerShown: true, title: '' }} />
-        <Stack.Screen name="booking/detail/[id]" options={{ headerShown: true, title: '' }} />
-        <Stack.Screen name="favorites" options={{ headerShown: true, title: '' }} />
-        <Stack.Screen name="conversation/[id]" options={{ headerShown: true, title: '' }} />
-        <Stack.Screen name="settings/index" options={{ headerShown: true, title: '' }} />
-        <Stack.Screen name="settings/language" options={{ headerShown: true, title: '' }} />
-        <Stack.Screen name="tutor-dashboard" />
-        <Stack.Screen name="institute-dashboard/index" options={{ headerShown: true, title: '' }} />
-      </Stack>
-    </AuthGate>
+    <RtlShell>
+      <AuthGate>
+        <StatusBar style="dark" />
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: colors.background },
+            headerTintColor: colors.primary,
+            headerStyle: { backgroundColor: colors.background },
+            headerShadowVisible: false,
+          }}
+        >
+          <Stack.Screen name="index" />
+          <Stack.Screen name="(auth)" />
+          <Stack.Screen name="dev-mode" />
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="course/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="tutor/[id]" options={{ headerShown: true, title: '' }} />
+          <Stack.Screen name="institute/[id]" options={{ headerShown: true, title: '' }} />
+          <Stack.Screen name="booking/[courseId]" options={{ headerShown: true, title: '' }} />
+          <Stack.Screen name="booking/confirmation" options={{ headerShown: true, title: '' }} />
+          <Stack.Screen name="booking/detail/[id]" options={{ headerShown: true, title: '' }} />
+          <Stack.Screen name="favorites" options={{ headerShown: true, title: '' }} />
+          <Stack.Screen name="conversation/[id]" options={{ headerShown: true, title: '' }} />
+          <Stack.Screen name="settings/index" options={{ headerShown: true, title: '' }} />
+          <Stack.Screen name="settings/language" options={{ headerShown: true, title: '' }} />
+          <Stack.Screen name="tutor-dashboard" />
+          <Stack.Screen name="institute-dashboard/index" options={{ headerShown: true, title: '' }} />
+        </Stack>
+      </AuthGate>
+    </RtlShell>
   );
 }
 

@@ -8,7 +8,7 @@ import { useTranslation } from '@/i18n';
 import { colors, spacing } from '@/theme';
 
 export default function TabLayout() {
-  const { t } = useTranslation();
+  const { t, isRTL } = useTranslation();
   const { isDesktop } = useLayout();
   const insets = useSafeAreaInsets();
 
@@ -33,6 +33,7 @@ export default function TabLayout() {
                 borderTopWidth: 0,
                 width: 220,
                 paddingTop: spacing.xl,
+                direction: isRTL ? 'rtl' : 'ltr',
               },
               tabBarItemStyle: {
                 flexDirection: 'row' as const,
@@ -54,6 +55,7 @@ export default function TabLayout() {
                 height: tabBarHeight,
                 paddingBottom: bottomPad,
                 paddingTop: 6,
+                direction: isRTL ? 'rtl' : 'ltr',
               },
               tabBarLabelStyle: {
                 fontSize: 11,

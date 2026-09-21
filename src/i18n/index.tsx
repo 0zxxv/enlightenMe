@@ -6,7 +6,7 @@ import React, {
   useMemo,
   useState,
 } from 'react';
-import { I18nManager } from 'react-native';
+import { I18nManager, Platform } from 'react-native';
 import ar from './locales/ar.json';
 import en from './locales/en.json';
 import { resolveInitialLanguage, setStoredLanguage } from '@/store/language';
@@ -71,6 +71,12 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   const setLanguage = useCallback(async (next: LanguageCode) => {
     await setStoredLanguage(next);
     setLanguageState(next);
+    if (Platform.OS === 'web') {
+      const dir = next === 'ar' ? 'rtl' : 'ltr';
+      document.documentElement.setAttribute('dir', dir);
+      document.documentElement.style.direction = dir;
+      document.body.style.direction = dir;
+    }
   }, []);
 
   const value = useMemo<I18nContextValue>(

@@ -152,7 +152,11 @@ export default function CourseDetailsScreen() {
               accessibilityRole="button"
               accessibilityLabel={t('common.back')}
             >
-              <Ionicons name="chevron-back" size={22} color={colors.white} />
+              <Ionicons
+                name={language === 'ar' ? 'chevron-forward' : 'chevron-back'}
+                size={22}
+                color={colors.white}
+              />
             </Pressable>
             <View style={styles.heroRight}>
               <Pressable

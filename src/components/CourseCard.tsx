@@ -27,7 +27,7 @@ export function CourseCard({
   style,
 }: Props) {
   const router = useRouter();
-  const { t, language } = useTranslation();
+  const { t, language, isRTL } = useTranslation();
   const { isAuthenticated } = useAuth();
   const favoritesQuery = useFavorites();
   const addFavorite = useAddFavorite();
@@ -66,7 +66,11 @@ export function CourseCard({
           contentFit={isLocal || course.imageUrl ? 'cover' : 'contain'}
         />
         {showFavorite ? (
-          <Pressable style={styles.heart} onPress={onToggleFavorite} hitSlop={8}>
+          <Pressable
+            style={[styles.heart, isRTL ? styles.heartStart : styles.heartEnd]}
+            onPress={onToggleFavorite}
+            hitSlop={8}
+          >
             <Ionicons
               name={isFav ? 'heart' : 'heart-outline'}
               size={18}
@@ -76,13 +80,23 @@ export function CourseCard({
         ) : null}
       </View>
       <View style={[styles.body, featured && styles.bodyFeatured]}>
-        <Text style={[styles.title, featured && styles.titleFeatured]} numberOfLines={2}>
+        <Text
+          style={[
+            styles.title,
+            featured && styles.titleFeatured,
+            { textAlign: isRTL ? 'right' : 'left', writingDirection: isRTL ? 'rtl' : 'ltr' },
+          ]}
+          numberOfLines={2}
+        >
           {courseTitle(course, language)}
         </Text>
         {tutorName ? (
           <View style={styles.tutorRow}>
             <Avatar name={tutorName} size={featured ? 22 : 28} />
-            <Text style={styles.meta} numberOfLines={1}>
+            <Text
+              style={[styles.meta, { textAlign: isRTL ? 'right' : 'left' }]}
+              numberOfLines={1}
+            >
               {tutorName}
             </Text>
           </View>
@@ -134,7 +148,6 @@ const styles = StyleSheet.create({
   heart: {
     position: 'absolute',
     top: spacing.sm,
-    right: spacing.sm,
     width: 32,
     height: 32,
     borderRadius: 16,
@@ -142,6 +155,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     ...shadows.sm,
+  },
+  heartEnd: {
+    right: spacing.sm,
+  },
+  heartStart: {
+    left: spacing.sm,
   },
   body: {
     padding: spacing.lg,
