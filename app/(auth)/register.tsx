@@ -45,7 +45,7 @@ export default function RegisterScreen() {
     if (!validate()) return;
     setLoading(true);
     try {
-      await register({
+      const user = await register({
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         email: email.trim(),
@@ -54,7 +54,7 @@ export default function RegisterScreen() {
         role,
         language,
       });
-      router.replace('/(tabs)');
+      router.replace(user.role === 'Tutor' ? '/tutor-dashboard' : '/(tabs)');
     } catch (err) {
       const message = err instanceof ApiError ? err.message : t('common.error');
       setErrors({ form: message });

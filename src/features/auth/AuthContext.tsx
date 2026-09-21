@@ -9,8 +9,8 @@ type AuthContextValue = {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (input: LoginInput) => Promise<void>;
-  register: (input: RegisterInput) => Promise<void>;
+  login: (input: LoginInput) => Promise<User>;
+  register: (input: RegisterInput) => Promise<User>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 };
@@ -54,6 +54,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(data.user);
     analytics.identify(data.user.id, { role: data.user.role });
     analytics.track('login');
+    return data.user;
   }, []);
 
   const register = useCallback(async (input: RegisterInput) => {
@@ -61,6 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(data.user);
     analytics.identify(data.user.id, { role: data.user.role });
     analytics.track('register', { role: data.user.role });
+    return data.user;
   }, []);
 
   const logout = useCallback(async () => {

@@ -62,7 +62,9 @@
     "invalidEmail": "Enter a valid email",
     "passwordRequired": "Password is required",
     "passwordMin": "Password must be at least 8 characters",
-    "nameRequired": "This field is required"
+    "nameRequired": "This field is required",
+    "devMode": "Dev mode",
+    "devModeSubtitle": "Skip login and open the app as a seeded demo user."
   },
   "home": {
     "goodMorning": "Good morning",

@@ -39,8 +39,8 @@ export default function LoginScreen() {
     setLoading(true);
     setErrors({});
     try {
-      await login({ email: email.trim(), password });
-      router.replace('/(tabs)');
+      const user = await login({ email: email.trim(), password });
+      router.replace(user.role === 'Tutor' ? '/tutor-dashboard' : '/(tabs)');
     } catch (err) {
       const message = err instanceof ApiError ? err.message : t('common.error');
       setErrors({ form: message });
@@ -85,6 +85,12 @@ export default function LoginScreen() {
             </Text>
             {errors.form ? <Text style={styles.formError}>{errors.form}</Text> : null}
             <Button title={t('auth.login')} onPress={onSubmit} loading={loading} />
+            <Button
+              title={t('auth.devMode')}
+              variant="ghost"
+              onPress={() => router.push('/(auth)/dev-mode')}
+              disabled={loading}
+            />
           </View>
           <Text style={styles.footer}>
             {t('auth.noAccount')}{' '}

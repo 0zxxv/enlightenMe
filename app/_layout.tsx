@@ -24,7 +24,7 @@ const queryClient = new QueryClient({
 });
 
 function AuthGate({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
   const { ready } = useI18n();
   const segments = useSegments();
 
@@ -45,6 +45,9 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   }
 
   if (isAuthenticated && inAuthGroup) {
+    if (user?.role === 'Tutor') {
+      return <Redirect href="/tutor-dashboard" />;
+    }
     return <Redirect href="/(tabs)" />;
   }
 

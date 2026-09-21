@@ -62,7 +62,9 @@
     "invalidEmail": "أدخل بريدًا صالحًا",
     "passwordRequired": "كلمة المرور مطلوبة",
     "passwordMin": "يجب أن تكون كلمة المرور 8 أحرف على الأقل",
-    "nameRequired": "هذا الحقل مطلوب"
+    "nameRequired": "هذا الحقل مطلوب",
+    "devMode": "وضع المطوّر",
+    "devModeSubtitle": "تخطَّ تسجيل الدخول وافتح التطبيق كمستخدم تجريبي."
   },
   "home": {
     "goodMorning": "صباح الخير",
