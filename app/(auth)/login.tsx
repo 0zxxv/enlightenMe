@@ -19,12 +19,20 @@ import { ApiError } from '@/types/api';
 
 export default function LoginScreen() {
   const { t } = useTranslation();
-  const { login } = useAuth();
+  const { login, isAuthenticated, user, logout } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState('student@dars.app');
   const [password, setPassword] = useState('Password123!');
   const [errors, setErrors] = useState<{ email?: string; password?: string; form?: string }>({});
   const [loading, setLoading] = useState(false);
+
+  const goHome = () => {
+    if (user?.role === 'Tutor') {
+      router.replace('/tutor-dashboard');
+      return;
+    }
+    router.replace('/(tabs)');
+  };
 
   const validate = () => {
     const next: typeof errors = {};
@@ -39,8 +47,8 @@ export default function LoginScreen() {
     setLoading(true);
     setErrors({});
     try {
-      const user = await login({ email: email.trim(), password });
-      router.replace(user.role === 'Tutor' ? '/tutor-dashboard' : '/(tabs)');
+      const signedIn = await login({ email: email.trim(), password });
+      router.replace(signedIn.role === 'Tutor' ? '/tutor-dashboard' : '/(tabs)');
     } catch (err) {
       const message = err instanceof ApiError ? err.message : t('common.error');
       setErrors({ form: message });
@@ -64,40 +72,65 @@ export default function LoginScreen() {
           />
           <Text style={styles.brand}>{t('brand.nameAr')}</Text>
           <Text style={styles.title}>{t('auth.login')}</Text>
-          <View style={styles.form}>
-            <TextInput
-              label={t('auth.email')}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              value={email}
-              onChangeText={setEmail}
-              error={errors.email}
-            />
-            <TextInput
-              label={t('auth.password')}
-              secureTextEntry
-              value={password}
-              onChangeText={setPassword}
-              error={errors.password}
-            />
-            <Text style={styles.link} onPress={() => router.push('/(auth)/forgot-password')}>
-              {t('auth.forgotPassword')}
+
+          {isAuthenticated && user ? (
+            <View style={styles.form}>
+              <Text style={styles.sessionHint}>
+                {t('auth.continueAs')} {user.firstName}
+              </Text>
+              <Button title={t('auth.continueToApp')} onPress={goHome} />
+              <Button
+                title={t('common.logout')}
+                variant="ghost"
+                onPress={async () => {
+                  await logout();
+                }}
+              />
+              <Button
+                title={t('auth.devMode')}
+                variant="ghost"
+                onPress={() => router.push('/dev-mode')}
+              />
+            </View>
+          ) : (
+            <View style={styles.form}>
+              <TextInput
+                label={t('auth.email')}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                value={email}
+                onChangeText={setEmail}
+                error={errors.email}
+              />
+              <TextInput
+                label={t('auth.password')}
+                secureTextEntry
+                value={password}
+                onChangeText={setPassword}
+                error={errors.password}
+              />
+              <Text style={styles.link} onPress={() => router.push('/(auth)/forgot-password')}>
+                {t('auth.forgotPassword')}
+              </Text>
+              {errors.form ? <Text style={styles.formError}>{errors.form}</Text> : null}
+              <Button title={t('auth.login')} onPress={onSubmit} loading={loading} />
+              <Button
+                title={t('auth.devMode')}
+                variant="ghost"
+                onPress={() => router.push('/dev-mode')}
+                disabled={loading}
+              />
+            </View>
+          )}
+
+          {!isAuthenticated ? (
+            <Text style={styles.footer}>
+              {t('auth.noAccount')}{' '}
+              <Link href="/(auth)/register" style={styles.linkInline}>
+                {t('auth.register')}
+              </Link>
             </Text>
-            {errors.form ? <Text style={styles.formError}>{errors.form}</Text> : null}
-            <Button title={t('auth.login')} onPress={onSubmit} loading={loading} />
-            <Button
-              title={t('auth.devMode')}
-              variant="ghost"
-              onPress={() => router.push('/dev-mode')}
-              disabled={loading}
-            />
-          </View>
-          <Text style={styles.footer}>
-            {t('auth.noAccount')}{' '}
-            <Link href="/(auth)/register" style={styles.linkInline}>
-              {t('auth.register')}
-            </Link>
-          </Text>
+          ) : null}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -111,6 +144,7 @@ const styles = StyleSheet.create({
   brand: { ...typography.heading, color: colors.primary },
   title: { ...typography.display, color: colors.text, fontSize: 32 },
   form: { gap: spacing.lg, marginTop: spacing.md },
+  sessionHint: { ...typography.body, color: colors.textSecondary },
   link: { ...typography.caption, color: colors.primary, fontWeight: '600', alignSelf: 'flex-end' },
   linkInline: { color: colors.primary, fontWeight: '700' },
   formError: { ...typography.caption, color: colors.error },

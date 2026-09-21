@@ -2,7 +2,9 @@
   "brand": {
     "name": "Dars",
     "nameAr": "درس",
-    "tagline": "تعلّم. علّم. انمُ."
+    "tagline": "تعلّم. علّم. انمُ.",
+    "marketplace": "سوق التعلّم في البحرين",
+    "quote": "المعرفة تبني غدًا أكثر إشراقًا."
   },
   "common": {
     "loading": "جارٍ التحميل…",
@@ -70,7 +72,9 @@
     "devModeQuickTests": "اختبارات سريعة",
     "devModeQuickTestsHint": "يسجّل الدخول كطالب تجريبي ثم يفتح المسار.",
     "devModeNoCourses": "لا توجد دورات منشورة لفتح الحجز.",
-    "devModeFootnote": "يستخدم بيانات تجريبية واقعية على الواجهة البرمجية. مسار ممتاز لاختبارات المتصفح الآلية: /dev-mode"
+    "devModeFootnote": "يستخدم بيانات تجريبية واقعية على الواجهة البرمجية. مسار ممتاز لاختبارات المتصفح الآلية: /dev-mode",
+    "continueAs": "مسجّل الدخول كـ",
+    "continueToApp": "المتابعة إلى التطبيق"
   },
   "home": {
     "goodMorning": "صباح الخير",
@@ -115,6 +119,10 @@
     "favorite": "إضافة للمفضلة",
     "unfavorite": "إزالة من المفضلة",
     "by": "بواسطة",
+    "verifiedTutor": "مدرّس موثّق",
+    "maxStudents": "حد أقصى {{count}} طلاب",
+    "sessionsCount": "{{count}} جلسات",
+    "share": "مشاركة",
     "noReviews": "لا توجد تقييمات بعد",
     "noCurriculum": "المنهج قريبًا"
   },

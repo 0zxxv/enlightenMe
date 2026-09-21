@@ -10,6 +10,7 @@ import { useTranslation } from '@/i18n';
 import { colors, radius, shadows, spacing, typography } from '@/theme';
 import type { Course } from '@/types/models';
 import { courseTitle, formatPrice, fullName } from '@/utils/format';
+import { resolveCourseImageSource } from '@/utils/courseImages';
 
 type Props = {
   course: Course;
@@ -18,8 +19,6 @@ type Props = {
   variant?: 'default' | 'featured';
   style?: ViewStyle;
 };
-
-const PLACEHOLDER = require('../../assets/images/dars_icon.png');
 
 export function CourseCard({
   course,
@@ -41,6 +40,7 @@ export function CourseCard({
   );
   const isFav = Boolean(favorite);
   const featured = variant === 'featured';
+  const { source: imageSource, isLocal } = resolveCourseImageSource(course);
 
   const onToggleFavorite = () => {
     if (!isAuthenticated) {
@@ -61,9 +61,9 @@ export function CourseCard({
     >
       <View style={[styles.imageWrap, featured && styles.imageWrapFeatured]}>
         <Image
-          source={course.imageUrl ? { uri: course.imageUrl } : PLACEHOLDER}
+          source={imageSource}
           style={styles.image}
-          contentFit={course.imageUrl ? 'cover' : 'contain'}
+          contentFit={isLocal || course.imageUrl ? 'cover' : 'contain'}
         />
         {showFavorite ? (
           <Pressable style={styles.heart} onPress={onToggleFavorite} hitSlop={8}>

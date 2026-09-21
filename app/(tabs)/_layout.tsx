@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Platform } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLayout } from '@/hooks/useLayout';
 import { useTranslation } from '@/i18n';
 import { colors, spacing } from '@/theme';
@@ -9,6 +10,12 @@ import { colors, spacing } from '@/theme';
 export default function TabLayout() {
   const { t } = useTranslation();
   const { isDesktop } = useLayout();
+  const insets = useSafeAreaInsets();
+
+  // Side nav only on wide web. Phones always keep a bottom tab bar.
+  const useSideNav = Platform.OS === 'web' && isDesktop;
+  const bottomPad = Math.max(insets.bottom, 8);
+  const tabBarHeight = 56 + bottomPad;
 
   return (
     <Tabs
@@ -16,41 +23,50 @@ export default function TabLayout() {
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
-        // Side rail on wide web/laptop; bottom tabs on phone/tablet.
-        tabBarPosition: isDesktop ? 'left' : 'bottom',
-        tabBarStyle: isDesktop
+        tabBarHideOnKeyboard: true,
+        ...(useSideNav
           ? {
-              backgroundColor: colors.backgroundElevated,
-              borderRightColor: colors.border,
-              borderTopWidth: 0,
-              width: 220,
-              paddingTop: spacing.xl,
+              tabBarPosition: 'left' as const,
+              tabBarStyle: {
+                backgroundColor: colors.backgroundElevated,
+                borderRightColor: colors.border,
+                borderTopWidth: 0,
+                width: 220,
+                paddingTop: spacing.xl,
+              },
+              tabBarItemStyle: {
+                flexDirection: 'row' as const,
+                justifyContent: 'flex-start' as const,
+                paddingHorizontal: spacing.lg,
+                height: 48,
+              },
+              tabBarLabelStyle: {
+                fontSize: 13,
+                fontWeight: '600' as const,
+                marginLeft: spacing.sm,
+              },
             }
           : {
-              backgroundColor: colors.backgroundElevated,
-              borderTopColor: colors.border,
-              height: Platform.OS === 'web' ? 64 : undefined,
-              paddingBottom: Platform.OS === 'web' ? 8 : undefined,
-            },
-        tabBarItemStyle: isDesktop
-          ? {
-              flexDirection: 'row',
-              justifyContent: 'flex-start',
-              paddingHorizontal: spacing.lg,
-              height: 48,
-            }
-          : undefined,
-        tabBarLabelStyle: {
-          fontSize: isDesktop ? 13 : 11,
-          fontWeight: '600',
-          marginLeft: isDesktop ? spacing.sm : 0,
-        },
+              tabBarStyle: {
+                backgroundColor: colors.backgroundElevated,
+                borderTopColor: colors.border,
+                borderTopWidth: StyleSheet.hairlineWidth,
+                height: tabBarHeight,
+                paddingBottom: bottomPad,
+                paddingTop: 6,
+              },
+              tabBarLabelStyle: {
+                fontSize: 11,
+                fontWeight: '600' as const,
+              },
+            }),
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
           title: t('tabs.home'),
+          href: '/(tabs)',
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons name={focused ? 'home' : 'home-outline'} color={color} size={size} />
           ),
@@ -60,6 +76,7 @@ export default function TabLayout() {
         name="explore"
         options={{
           title: t('tabs.explore'),
+          href: '/(tabs)/explore',
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons name={focused ? 'search' : 'search-outline'} color={color} size={size} />
           ),
@@ -69,6 +86,7 @@ export default function TabLayout() {
         name="messages"
         options={{
           title: t('tabs.messages'),
+          href: '/(tabs)/messages',
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons
               name={focused ? 'chatbubble-ellipses' : 'chatbubble-ellipses-outline'}
@@ -82,6 +100,7 @@ export default function TabLayout() {
         name="bookings"
         options={{
           title: t('tabs.bookings'),
+          href: '/(tabs)/bookings',
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons
               name={focused ? 'calendar' : 'calendar-outline'}
@@ -95,6 +114,7 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: t('tabs.profile'),
+          href: '/(tabs)/profile',
           tabBarIcon: ({ color, size, focused }) => (
             <Ionicons name={focused ? 'person' : 'person-outline'} color={color} size={size} />
           ),

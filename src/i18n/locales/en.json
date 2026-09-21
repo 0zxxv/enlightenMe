@@ -2,7 +2,9 @@
   "brand": {
     "name": "Dars",
     "nameAr": "درس",
-    "tagline": "Learn. Teach. Grow."
+    "tagline": "Learn. Teach. Grow.",
+    "marketplace": "Bahrain’s learning marketplace",
+    "quote": "Knowledge builds brighter tomorrows."
   },
   "common": {
     "loading": "Loading…",
@@ -70,7 +72,9 @@
     "devModeQuickTests": "Quick tests",
     "devModeQuickTestsHint": "Signs in as the demo student, then opens that flow.",
     "devModeNoCourses": "No published courses found to open booking.",
-    "devModeFootnote": "Uses realistic seeded data on the live API. Ideal target route for Codex/Cursor browser end-to-end tests: /dev-mode"
+    "devModeFootnote": "Uses realistic seeded data on the live API. Ideal target route for Codex/Cursor browser end-to-end tests: /dev-mode",
+    "continueAs": "Signed in as",
+    "continueToApp": "Continue to app"
   },
   "home": {
     "goodMorning": "Good morning",
@@ -115,6 +119,10 @@
     "favorite": "Favorite",
     "unfavorite": "Unfavorite",
     "by": "by",
+    "verifiedTutor": "Verified Tutor",
+    "maxStudents": "Max {{count}} students",
+    "sessionsCount": "{{count}} Sessions",
+    "share": "Share",
     "noReviews": "No reviews yet",
     "noCurriculum": "Curriculum coming soon"
   },

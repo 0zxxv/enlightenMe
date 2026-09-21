@@ -1,15 +1,18 @@
+import { BlurView } from 'expo-blur';
 import React from 'react';
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
+  View,
   ViewStyle,
   TextStyle,
 } from 'react-native';
 import { colors, radius, spacing, typography } from '@/theme';
 
-type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
+type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'glass';
 type Size = 'md' | 'lg' | 'sm';
 
 type Props = {
@@ -34,6 +37,8 @@ export function Button({
   textStyle,
 }: Props) {
   const isDisabled = disabled || loading;
+  const isGlass = variant === 'glass';
+
   return (
     <Pressable
       accessibilityRole="button"
@@ -48,6 +53,25 @@ export function Button({
         style,
       ]}
     >
+      {isGlass ? (
+        Platform.OS === 'web' ? (
+          <View
+            pointerEvents="none"
+            style={[
+              StyleSheet.absoluteFill,
+              styles.glassFallback,
+              { backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)' } as ViewStyle,
+            ]}
+          />
+        ) : (
+          <BlurView
+            pointerEvents="none"
+            intensity={28}
+            tint="light"
+            style={StyleSheet.absoluteFill}
+          />
+        )
+      ) : null}
       {loading ? (
         <ActivityIndicator color={variant === 'primary' ? colors.white : colors.primary} />
       ) : (
@@ -63,6 +87,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
+    overflow: 'hidden',
   },
   primary: {
     backgroundColor: colors.primary,
@@ -75,6 +100,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.borderStrong,
   },
+  glass: {
+    backgroundColor: 'rgba(255, 252, 248, 0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.55)',
+  },
+  glassFallback: {
+    backgroundColor: 'rgba(255, 252, 248, 0.22)',
+  } as ViewStyle,
   danger: {
     backgroundColor: colors.errorSoft,
   },
@@ -109,6 +142,9 @@ const styles = StyleSheet.create({
     color: colors.primary,
   },
   text_ghost: {
+    color: colors.primary,
+  },
+  text_glass: {
     color: colors.primary,
   },
   text_danger: {

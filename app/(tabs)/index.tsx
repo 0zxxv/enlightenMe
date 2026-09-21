@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import {
@@ -116,12 +116,12 @@ export default function HomeScreen() {
           style={styles.promoWrap}
           onPress={() => router.push('/(tabs)/explore')}
         >
-          <LinearGradient
-            colors={['#D8E4F8', '#E6DFF0', '#F0E8F5']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.promo}
-          >
+          <Image
+            source={require('../../assets/images/bg2.png')}
+            style={styles.promoBg}
+            contentFit="cover"
+          />
+          <View style={styles.promo}>
             <View style={styles.promoCopy}>
               <Text style={styles.promoTitle}>{t('home.promoTitle')}</Text>
               <Text style={styles.promoSubtitle}>{t('home.promoSubtitle')}</Text>
@@ -129,7 +129,7 @@ export default function HomeScreen() {
             <View style={styles.promoArrow}>
               <Ionicons name="arrow-forward" size={20} color={colors.primary} />
             </View>
-          </LinearGradient>
+          </View>
         </Pressable>
 
         <SectionHeader
@@ -253,14 +253,24 @@ const styles = StyleSheet.create({
     borderRadius: radius.xxl,
     overflow: 'hidden',
     ...shadows.sm,
+    position: 'relative',
+    width: '100%',
+    aspectRatio: 2.35,
+  },
+  promoBg: {
+    ...StyleSheet.absoluteFill,
+    width: '100%',
+    height: '100%',
   },
   promo: {
-    minHeight: 120,
-    padding: spacing.xl,
+    ...StyleSheet.absoluteFill,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.lg,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.lg,
+    backgroundColor: 'rgba(247, 243, 238, 0.22)',
   },
   promoCopy: {
     flex: 1,
@@ -268,12 +278,12 @@ const styles = StyleSheet.create({
   },
   promoTitle: {
     ...typography.heading,
-    color: colors.text,
+    color: colors.primary,
     fontSize: 22,
   },
   promoSubtitle: {
     ...typography.body,
-    color: colors.textSecondary,
+    color: colors.primaryMuted,
     maxWidth: 280,
   },
   promoArrow: {

@@ -23,6 +23,9 @@ const queryClient = new QueryClient({
   },
 });
 
+/** One-shot per JS session so a restored tab route still opens Welcome first. */
+let coldStartEntryDone = false;
+
 function AuthGate({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading, user } = useAuth();
   const { ready } = useI18n();
@@ -41,11 +44,24 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   const inAuthGroup = segments[0] === '(auth)';
   const inPublicDevMode = segments[0] === 'dev-mode';
 
+  // Cold start always shows Welcome first (even with a saved session / restored route).
+  if (!coldStartEntryDone) {
+    if (!inAuthGroup && !inPublicDevMode) {
+      return <Redirect href="/(auth)/welcome" />;
+    }
+    coldStartEntryDone = true;
+  }
+
   if (!isAuthenticated && !inAuthGroup && !inPublicDevMode) {
     return <Redirect href="/(auth)/welcome" />;
   }
 
-  if (isAuthenticated && inAuthGroup) {
+  // Stay on login/welcome even if a session exists so cold start can show entry screens first.
+  const authScreen = segments[1];
+  const stayOnAuthEntry =
+    inAuthGroup && (authScreen === 'login' || authScreen === 'welcome' || !authScreen);
+
+  if (isAuthenticated && inAuthGroup && !stayOnAuthEntry) {
     if (user?.role === 'Tutor') {
       return <Redirect href="/tutor-dashboard" />;
     }
@@ -68,10 +84,11 @@ function RootNavigator() {
           headerShadowVisible: false,
         }}
       >
+        <Stack.Screen name="index" />
         <Stack.Screen name="(auth)" />
         <Stack.Screen name="dev-mode" />
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="course/[id]" options={{ headerShown: true, title: '' }} />
+        <Stack.Screen name="course/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="tutor/[id]" options={{ headerShown: true, title: '' }} />
         <Stack.Screen name="institute/[id]" options={{ headerShown: true, title: '' }} />
         <Stack.Screen name="booking/[courseId]" options={{ headerShown: true, title: '' }} />
