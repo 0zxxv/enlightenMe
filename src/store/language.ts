@@ -1,6 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Localization from 'expo-localization';
-import { I18nManager } from 'react-native';
 import type { LanguageCode } from '@/types/models';
 
 const LANGUAGE_KEY = 'em_language';
@@ -19,11 +18,6 @@ export function detectDeviceLanguage(): LanguageCode {
 
 export async function setStoredLanguage(language: LanguageCode) {
   await AsyncStorage.setItem(LANGUAGE_KEY, language);
-  const isRTL = language === 'ar';
-  if (I18nManager.isRTL !== isRTL) {
-    I18nManager.allowRTL(isRTL);
-    I18nManager.forceRTL(isRTL);
-  }
 }
 
 export async function resolveInitialLanguage(): Promise<LanguageCode> {

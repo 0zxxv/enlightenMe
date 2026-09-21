@@ -1,10 +1,13 @@
+import React, { useEffect } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import { useI18n } from '@/i18n';
-import React, { useEffect } from 'react';
 
-/** Applies document/app direction so flex rows, text, and absolute start/end mirror in Arabic. */
+/**
+ * Mirrors layout for Arabic on web + Expo.
+ * Native I18nManager is unreliable in Expo Go, so we drive Yoga via `direction`.
+ */
 export function RtlShell({ children }: { children: React.ReactNode }) {
-  const { isRTL, ready } = useI18n();
+  const { isRTL, language, ready } = useI18n();
 
   useEffect(() => {
     if (!ready || Platform.OS !== 'web') return;
@@ -14,14 +17,13 @@ export function RtlShell({ children }: { children: React.ReactNode }) {
     document.body.style.direction = dir;
   }, [isRTL, ready]);
 
+  if (!ready) return null;
+
   return (
     <View
-      style={[
-        styles.root,
-        {
-          direction: isRTL ? 'rtl' : 'ltr',
-        } as object,
-      ]}
+      key={`rtl-${language}`}
+      style={[styles.root, isRTL ? styles.rtl : styles.ltr]}
+      collapsable={false}
     >
       {children}
     </View>
@@ -31,5 +33,11 @@ export function RtlShell({ children }: { children: React.ReactNode }) {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
+  },
+  rtl: {
+    direction: 'rtl',
+  },
+  ltr: {
+    direction: 'ltr',
   },
 });

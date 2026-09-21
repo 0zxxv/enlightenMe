@@ -1,11 +1,19 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Platform, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLayout } from '@/hooks/useLayout';
 import { useTranslation } from '@/i18n';
 import { colors, spacing } from '@/theme';
+
+type VisibleTab = {
+  name: 'index' | 'courses' | 'bookings' | 'students' | 'profile';
+  title: string;
+  href: string;
+  icon: (focused: boolean) => keyof typeof Ionicons.glyphMap;
+  headerShown?: boolean;
+};
 
 export default function TutorDashboardLayout() {
   const { t, isRTL } = useTranslation();
@@ -16,8 +24,50 @@ export default function TutorDashboardLayout() {
   const bottomPad = Math.max(insets.bottom, 8);
   const tabBarHeight = 56 + bottomPad;
 
+  const visibleTabs = useMemo<VisibleTab[]>(() => {
+    const list: VisibleTab[] = [
+      {
+        name: 'index',
+        title: t('tabs.home'),
+        href: '/tutor-dashboard',
+        icon: (focused) => (focused ? 'home' : 'home-outline'),
+        headerShown: false,
+      },
+      {
+        name: 'courses',
+        title: t('tutorDashboard.courses'),
+        href: '/tutor-dashboard/courses',
+        icon: (focused) => (focused ? 'book' : 'book-outline'),
+        headerShown: true,
+      },
+      {
+        name: 'bookings',
+        title: t('tutorDashboard.bookings'),
+        href: '/tutor-dashboard/bookings',
+        icon: (focused) => (focused ? 'calendar' : 'calendar-outline'),
+        headerShown: true,
+      },
+      {
+        name: 'students',
+        title: t('tutorDashboard.students'),
+        href: '/tutor-dashboard/students',
+        icon: (focused) => (focused ? 'people' : 'people-outline'),
+        headerShown: true,
+      },
+      {
+        name: 'profile',
+        title: t('tabs.profile'),
+        href: '/tutor-dashboard/profile',
+        icon: (focused) => (focused ? 'person' : 'person-outline'),
+        headerShown: true,
+      },
+    ];
+    return isRTL ? [...list].reverse() : list;
+  }, [t, isRTL]);
+
   return (
     <Tabs
+      key={`tutor-tabs-${isRTL ? 'rtl' : 'ltr'}`}
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
@@ -63,77 +113,23 @@ export default function TutorDashboardLayout() {
             }),
       }}
     >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: t('tabs.home'),
-          href: '/tutor-dashboard',
-          headerShown: false,
-          tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? 'home' : 'home-outline'} color={color} size={size} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="courses"
-        options={{
-          title: t('tutorDashboard.courses'),
-          href: '/tutor-dashboard/courses',
-          headerShown: true,
-          headerStyle: { backgroundColor: colors.background },
-          headerTintColor: colors.primary,
-          headerShadowVisible: false,
-          tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? 'book' : 'book-outline'} color={color} size={size} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="bookings"
-        options={{
-          title: t('tutorDashboard.bookings'),
-          href: '/tutor-dashboard/bookings',
-          headerShown: true,
-          headerStyle: { backgroundColor: colors.background },
-          headerTintColor: colors.primary,
-          headerShadowVisible: false,
-          tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons
-              name={focused ? 'calendar' : 'calendar-outline'}
-              color={color}
-              size={size}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="students"
-        options={{
-          title: t('tutorDashboard.students'),
-          href: '/tutor-dashboard/students',
-          headerShown: true,
-          headerStyle: { backgroundColor: colors.background },
-          headerTintColor: colors.primary,
-          headerShadowVisible: false,
-          tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? 'people' : 'people-outline'} color={color} size={size} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: t('tabs.profile'),
-          href: '/tutor-dashboard/profile',
-          headerShown: true,
-          headerStyle: { backgroundColor: colors.background },
-          headerTintColor: colors.primary,
-          headerShadowVisible: false,
-          tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? 'person' : 'person-outline'} color={color} size={size} />
-          ),
-        }}
-      />
+      {visibleTabs.map((tab) => (
+        <Tabs.Screen
+          key={tab.name}
+          name={tab.name}
+          options={{
+            title: tab.title,
+            href: tab.href as never,
+            headerShown: tab.headerShown,
+            headerStyle: { backgroundColor: colors.background },
+            headerTintColor: colors.primary,
+            headerShadowVisible: false,
+            tabBarIcon: ({ color, size, focused }) => (
+              <Ionicons name={tab.icon(focused)} color={color} size={size} />
+            ),
+          }}
+        />
+      ))}
       <Tabs.Screen
         name="create"
         options={{

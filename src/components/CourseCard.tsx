@@ -66,11 +66,7 @@ export function CourseCard({
           contentFit={isLocal || course.imageUrl ? 'cover' : 'contain'}
         />
         {showFavorite ? (
-          <Pressable
-            style={[styles.heart, isRTL ? styles.heartStart : styles.heartEnd]}
-            onPress={onToggleFavorite}
-            hitSlop={8}
-          >
+          <Pressable style={styles.heart} onPress={onToggleFavorite} hitSlop={8}>
             <Ionicons
               name={isFav ? 'heart' : 'heart-outline'}
               size={18}
@@ -148,6 +144,7 @@ const styles = StyleSheet.create({
   heart: {
     position: 'absolute',
     top: spacing.sm,
+    end: spacing.sm,
     width: 32,
     height: 32,
     borderRadius: 16,
@@ -155,12 +152,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     ...shadows.sm,
-  },
-  heartEnd: {
-    right: spacing.sm,
-  },
-  heartStart: {
-    left: spacing.sm,
   },
   body: {
     padding: spacing.lg,

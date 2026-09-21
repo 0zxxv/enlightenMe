@@ -1,24 +1,68 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Platform, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLayout } from '@/hooks/useLayout';
 import { useTranslation } from '@/i18n';
 import { colors, spacing } from '@/theme';
 
+type TabDef = {
+  name: 'index' | 'explore' | 'messages' | 'bookings' | 'profile';
+  title: string;
+  href: '/(tabs)' | '/(tabs)/explore' | '/(tabs)/messages' | '/(tabs)/bookings' | '/(tabs)/profile';
+  icon: (focused: boolean) => keyof typeof Ionicons.glyphMap;
+};
+
 export default function TabLayout() {
   const { t, isRTL } = useTranslation();
   const { isDesktop } = useLayout();
   const insets = useSafeAreaInsets();
 
-  // Side nav only on wide web. Phones always keep a bottom tab bar.
   const useSideNav = Platform.OS === 'web' && isDesktop;
   const bottomPad = Math.max(insets.bottom, 8);
   const tabBarHeight = 56 + bottomPad;
 
+  const tabs = useMemo<TabDef[]>(() => {
+    const list: TabDef[] = [
+      {
+        name: 'index',
+        title: t('tabs.home'),
+        href: '/(tabs)',
+        icon: (focused) => (focused ? 'home' : 'home-outline'),
+      },
+      {
+        name: 'explore',
+        title: t('tabs.explore'),
+        href: '/(tabs)/explore',
+        icon: (focused) => (focused ? 'search' : 'search-outline'),
+      },
+      {
+        name: 'messages',
+        title: t('tabs.messages'),
+        href: '/(tabs)/messages',
+        icon: (focused) => (focused ? 'chatbubble-ellipses' : 'chatbubble-ellipses-outline'),
+      },
+      {
+        name: 'bookings',
+        title: t('tabs.bookings'),
+        href: '/(tabs)/bookings',
+        icon: (focused) => (focused ? 'calendar' : 'calendar-outline'),
+      },
+      {
+        name: 'profile',
+        title: t('tabs.profile'),
+        href: '/(tabs)/profile',
+        icon: (focused) => (focused ? 'person' : 'person-outline'),
+      },
+    ];
+    // Expo Go ignores I18nManager — reverse tab order for a true RTL mirror.
+    return isRTL ? [...list].reverse() : list;
+  }, [t, isRTL]);
+
   return (
     <Tabs
+      key={`student-tabs-${isRTL ? 'rtl' : 'ltr'}`}
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
@@ -64,64 +108,19 @@ export default function TabLayout() {
             }),
       }}
     >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: t('tabs.home'),
-          href: '/(tabs)',
-          tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? 'home' : 'home-outline'} color={color} size={size} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="explore"
-        options={{
-          title: t('tabs.explore'),
-          href: '/(tabs)/explore',
-          tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? 'search' : 'search-outline'} color={color} size={size} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="messages"
-        options={{
-          title: t('tabs.messages'),
-          href: '/(tabs)/messages',
-          tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons
-              name={focused ? 'chatbubble-ellipses' : 'chatbubble-ellipses-outline'}
-              color={color}
-              size={size}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="bookings"
-        options={{
-          title: t('tabs.bookings'),
-          href: '/(tabs)/bookings',
-          tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons
-              name={focused ? 'calendar' : 'calendar-outline'}
-              color={color}
-              size={size}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: t('tabs.profile'),
-          href: '/(tabs)/profile',
-          tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons name={focused ? 'person' : 'person-outline'} color={color} size={size} />
-          ),
-        }}
-      />
+      {tabs.map((tab) => (
+        <Tabs.Screen
+          key={tab.name}
+          name={tab.name}
+          options={{
+            title: tab.title,
+            href: tab.href,
+            tabBarIcon: ({ color, size, focused }) => (
+              <Ionicons name={tab.icon(focused)} color={color} size={size} />
+            ),
+          }}
+        />
+      ))}
     </Tabs>
   );
 }

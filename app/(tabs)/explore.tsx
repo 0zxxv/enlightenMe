@@ -96,7 +96,11 @@ export default function ExploreScreen() {
     if (tab === 'institutes') {
       return institutes.map((item) => ({ kind: 'institute' as const, item }));
     }
-    return [];
+    return [] as Array<
+      | { kind: 'course'; item: Course }
+      | { kind: 'tutor'; item: Tutor }
+      | { kind: 'institute'; item: Institute }
+    >;
   }, [tab, courses, tutors, institutes]);
 
   const courseGap = spacing.md;
@@ -273,7 +277,11 @@ export default function ExploreScreen() {
             />
             <FlatList
               key={`explore-${tab}-${columns}`}
-              data={listData}
+              data={listData as Array<
+                | { kind: 'course'; item: Course }
+                | { kind: 'tutor'; item: Tutor }
+                | { kind: 'institute'; item: Institute }
+              >}
               keyExtractor={(row) => `${row.kind}-${row.item.id}`}
               numColumns={tab === 'courses' ? columns : 1}
               contentContainerStyle={styles.list}
@@ -284,7 +292,7 @@ export default function ExploreScreen() {
               }
               showsVerticalScrollIndicator={false}
               renderItem={({ item: row }) => {
-                if (tab === 'courses' && row.kind === 'course') {
+                if (row.kind === 'course') {
                   return (
                     <View
                       style={{
@@ -304,14 +312,11 @@ export default function ExploreScreen() {
                     </View>
                   );
                 }
-                if (row.kind === 'institute') {
-                  return (
-                    <View style={styles.listItem}>
-                      <InstituteCard institute={row.item} />
-                    </View>
-                  );
-                }
-                return null;
+                return (
+                  <View style={styles.listItem}>
+                    <InstituteCard institute={row.item} />
+                  </View>
+                );
               }}
             />
           </>

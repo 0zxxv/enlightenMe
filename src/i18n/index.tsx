@@ -6,11 +6,11 @@ import React, {
   useMemo,
   useState,
 } from 'react';
-import { I18nManager, Platform } from 'react-native';
 import ar from './locales/ar.json';
 import en from './locales/en.json';
 import { resolveInitialLanguage, setStoredLanguage } from '@/store/language';
 import type { LanguageCode } from '@/types/models';
+import { applyLayoutDirection } from '@/utils/rtl';
 
 type Dictionaries = {
   en: typeof en;
@@ -57,13 +57,9 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    resolveInitialLanguage().then((lang) => {
+    resolveInitialLanguage().then(async (lang) => {
       setLanguageState(lang);
-      const isRTL = lang === 'ar';
-      if (I18nManager.isRTL !== isRTL) {
-        I18nManager.allowRTL(isRTL);
-        I18nManager.forceRTL(isRTL);
-      }
+      await applyLayoutDirection(lang === 'ar');
       setReady(true);
     });
   }, []);
@@ -71,12 +67,8 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   const setLanguage = useCallback(async (next: LanguageCode) => {
     await setStoredLanguage(next);
     setLanguageState(next);
-    if (Platform.OS === 'web') {
-      const dir = next === 'ar' ? 'rtl' : 'ltr';
-      document.documentElement.setAttribute('dir', dir);
-      document.documentElement.style.direction = dir;
-      document.body.style.direction = dir;
-    }
+    const { reloaded } = await applyLayoutDirection(next === 'ar');
+    if (reloaded) return;
   }, []);
 
   const value = useMemo<I18nContextValue>(

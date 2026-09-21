@@ -196,10 +196,10 @@
   "settings": {
     "title": "Settings",
     "language": "Language",
-    "languageHint": "Switching to Arabic enables RTL layout.",
+    "languageHint": "Arabic mirrors the layout right-to-left. In Expo the UI updates immediately.",
     "english": "English",
     "arabic": "Arabic",
-    "restartHint": "You may need to reload the app for RTL to fully apply."
+    "restartHint": "Reloading so the layout direction can apply."
   },
   "tutorDashboard": {
     "title": "Tutor dashboard",
