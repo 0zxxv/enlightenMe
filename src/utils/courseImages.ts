@@ -19,6 +19,16 @@ const LOCAL_COURSE_IMAGES: { key: string; match: RegExp; source: ImageSource }[]
     source: require('../../assets/images/courses-images/physics.png'),
   },
   {
+    key: 'chemistry',
+    match: /\b(chemistry|chem)\b/i,
+    source: require('../../assets/images/courses-images/chemistry.png'),
+  },
+  {
+    key: 'english',
+    match: /\b(english|ielts|writing|speaking)\b/i,
+    source: require('../../assets/images/courses-images/english.png'),
+  },
+  {
     key: 'math',
     match: /\b(math|mathematics|calculus|algebra|geometry)\b/i,
     source: require('../../assets/images/courses-images/math.png'),
