@@ -28,7 +28,7 @@ import { colors, radius, shadows, spacing, typography } from '@/theme';
 import { greetingKey } from '@/utils/format';
 
 export default function HomeScreen() {
-  const { t, language } = useTranslation();
+  const { t, language, isRTL } = useTranslation();
   const { user } = useAuth();
   const router = useRouter();
   const layout = useLayout();
@@ -42,6 +42,7 @@ export default function HomeScreen() {
 
   const greeting = t(greetingKey());
   const firstName = user?.firstName ?? t('brand.name');
+  const rowDir = isRTL ? ('row-reverse' as const) : ('row' as const);
 
   const subjects = useMemo(() => {
     const count = layout.subjectColumns;
@@ -71,8 +72,14 @@ export default function HomeScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.header}>
-          <Text style={styles.greetingLine} numberOfLines={2}>
+        <View style={[styles.header, { flexDirection: rowDir }]}>
+          <Text
+            style={[
+              styles.greetingLine,
+              { textAlign: isRTL ? 'right' : 'left', writingDirection: isRTL ? 'rtl' : 'ltr' },
+            ]}
+            numberOfLines={2}
+          >
             {greeting}, <Text style={styles.greetingName}>{firstName}</Text>{' '}
             <Text style={styles.wave}>👋</Text>
           </Text>
@@ -88,7 +95,7 @@ export default function HomeScreen() {
           onTrailingPress={onSearch}
         />
 
-        <View style={styles.categoryRow}>
+        <View style={[styles.categoryRow, { flexDirection: rowDir }]}>
           {CATEGORY_CHIPS.map((chip) => (
             <Pressable
               key={chip.id}
@@ -121,13 +128,31 @@ export default function HomeScreen() {
             style={styles.promoBg}
             contentFit="cover"
           />
-          <View style={styles.promo}>
+          <View style={[styles.promo, { flexDirection: rowDir }]}>
             <View style={styles.promoCopy}>
-              <Text style={styles.promoTitle}>{t('home.promoTitle')}</Text>
-              <Text style={styles.promoSubtitle}>{t('home.promoSubtitle')}</Text>
+              <Text
+                style={[
+                  styles.promoTitle,
+                  { textAlign: isRTL ? 'right' : 'left', writingDirection: isRTL ? 'rtl' : 'ltr' },
+                ]}
+              >
+                {t('home.promoTitle')}
+              </Text>
+              <Text
+                style={[
+                  styles.promoSubtitle,
+                  { textAlign: isRTL ? 'right' : 'left', writingDirection: isRTL ? 'rtl' : 'ltr' },
+                ]}
+              >
+                {t('home.promoSubtitle')}
+              </Text>
             </View>
             <View style={styles.promoArrow}>
-              <Ionicons name="arrow-forward" size={20} color={colors.primary} />
+              <Ionicons
+                name={isRTL ? 'arrow-back' : 'arrow-forward'}
+                size={20}
+                color={colors.primary}
+              />
             </View>
           </View>
         </Pressable>
@@ -137,7 +162,7 @@ export default function HomeScreen() {
           actionLabel={t('common.seeAll')}
           onAction={() => router.push('/(tabs)/explore')}
         />
-        <View style={styles.subjectGrid}>
+        <View style={[styles.subjectGrid, { flexDirection: rowDir }]}>
           {subjects.map((subject) => (
             <Pressable
               key={subject.id}
@@ -207,8 +232,6 @@ const styles = StyleSheet.create({
     paddingTop: spacing.md,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     gap: spacing.md,
   },
@@ -227,7 +250,6 @@ const styles = StyleSheet.create({
     fontSize: 24,
   },
   categoryRow: {
-    flexDirection: 'row',
     justifyContent: 'space-between',
     gap: spacing.sm,
   },
@@ -266,7 +288,6 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFill,
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.lg,
-    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.lg,
@@ -296,7 +317,6 @@ const styles = StyleSheet.create({
     ...shadows.sm,
   },
   subjectGrid: {
-    flexDirection: 'row',
     flexWrap: 'wrap',
   },
   subjectItem: {
