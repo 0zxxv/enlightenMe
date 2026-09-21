@@ -11,6 +11,10 @@ const sendMessageSchema = z.object({
   body: z.string().min(1).max(5000),
 });
 
+const replySchema = z.object({
+  body: z.string().min(1).max(5000),
+});
+
 async function assertBookingRelationship(userA: string, userB: string) {
   const related = await prisma.booking.findFirst({
     where: {
@@ -33,6 +37,20 @@ async function assertBookingRelationship(userA: string, userB: string) {
       403,
     );
   }
+}
+
+async function findDirectConversation(userA: string, userB: string) {
+  return prisma.conversation.findFirst({
+    where: {
+      AND: [
+        { participants: { some: { userId: userA } } },
+        { participants: { some: { userId: userB } } },
+      ],
+    },
+    include: {
+      participants: true,
+    },
+  });
 }
 
 export const messagesRouter = Router();
@@ -98,6 +116,113 @@ messagesRouter.get('/conversations/:id', async (req: AuthedRequest, res, next) =
   }
 });
 
+messagesRouter.get('/conversations/:id/meta', async (req: AuthedRequest, res, next) => {
+  try {
+    const conversationId = paramId(req.params.id);
+    const userId = req.user!.sub;
+    const conversation = await prisma.conversation.findFirst({
+      where: {
+        id: conversationId,
+        participants: { some: { userId } },
+      },
+      include: {
+        participants: {
+          include: {
+            user: {
+              select: { id: true, firstName: true, lastName: true, role: true },
+            },
+          },
+        },
+      },
+    });
+    if (!conversation) {
+      throw new AppError('NOT_FOUND', 'Conversation not found', 404);
+    }
+    res.json({ data: conversation });
+  } catch (err) {
+    next(err);
+  }
+});
+
+messagesRouter.post(
+  '/conversations/:id/messages',
+  validate(replySchema),
+  async (req: AuthedRequest, res, next) => {
+    try {
+      const conversationId = paramId(req.params.id);
+      const senderId = req.user!.sub;
+      const { body } = req.body as z.infer<typeof replySchema>;
+
+      const membership = await prisma.conversationParticipant.findUnique({
+        where: {
+          conversationId_userId: {
+            conversationId,
+            userId: senderId,
+          },
+        },
+      });
+      if (!membership) {
+        throw new AppError('FORBIDDEN', 'Not a participant of this conversation', 403);
+      }
+
+      const message = await prisma.message.create({
+        data: {
+          conversationId,
+          senderId,
+          body: body.trim(),
+        },
+        include: {
+          sender: { select: { id: true, firstName: true, lastName: true } },
+        },
+      });
+
+      await prisma.conversation.update({
+        where: { id: conversationId },
+        data: { updatedAt: new Date() },
+      });
+
+      res.status(201).json({ data: message });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+const openConversationSchema = z.object({
+  recipientId: z.string().uuid(),
+});
+
+messagesRouter.post(
+  '/open',
+  validate(openConversationSchema),
+  async (req: AuthedRequest, res, next) => {
+    try {
+      const senderId = req.user!.sub;
+      const { recipientId } = req.body as z.infer<typeof openConversationSchema>;
+      if (senderId === recipientId) {
+        throw new AppError('INVALID_REQUEST', 'Cannot message yourself', 400);
+      }
+
+      await assertBookingRelationship(senderId, recipientId);
+
+      const existing = await findDirectConversation(senderId, recipientId);
+      const conversation =
+        existing ??
+        (await prisma.conversation.create({
+          data: {
+            participants: {
+              create: [{ userId: senderId }, { userId: recipientId }],
+            },
+          },
+        }));
+
+      res.status(existing ? 200 : 201).json({ data: { conversationId: conversation.id } });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
 messagesRouter.post('/send', validate(sendMessageSchema), async (req: AuthedRequest, res, next) => {
   try {
     const senderId = req.user!.sub;
@@ -108,14 +233,7 @@ messagesRouter.post('/send', validate(sendMessageSchema), async (req: AuthedRequ
 
     await assertBookingRelationship(senderId, recipientId);
 
-    const existing = await prisma.conversation.findFirst({
-      where: {
-        AND: [
-          { participants: { some: { userId: senderId } } },
-          { participants: { some: { userId: recipientId } } },
-        ],
-      },
-    });
+    const existing = await findDirectConversation(senderId, recipientId);
 
     const conversation =
       existing ??
@@ -131,7 +249,7 @@ messagesRouter.post('/send', validate(sendMessageSchema), async (req: AuthedRequ
       data: {
         conversationId: conversation.id,
         senderId,
-        body,
+        body: body.trim(),
       },
       include: {
         sender: { select: { id: true, firstName: true, lastName: true } },

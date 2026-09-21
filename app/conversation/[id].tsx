@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useNavigation } from 'expo-router';
-import React, { useLayoutEffect, useState } from 'react';
+import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   FlatList,
   KeyboardAvoidingView,
@@ -14,44 +14,55 @@ import { ErrorState } from '@/components/ErrorState';
 import { LoadingState } from '@/components/LoadingState';
 import { TextInput } from '@/components/TextInput';
 import { useAuth } from '@/features/auth/useAuth';
-import { useConversationMessages } from '@/features/messages/hooks';
+import {
+  useConversationMessages,
+  useConversationMeta,
+  useReplyInConversation,
+} from '@/features/messages/hooks';
 import { useTranslation } from '@/i18n';
 import { colors, radius, spacing, typography } from '@/theme';
-import { useQueryClient } from '@tanstack/react-query';
+import { fullName } from '@/utils/format';
 
 export default function ConversationScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t } = useTranslation();
   const { user } = useAuth();
   const navigation = useNavigation();
+  const listRef = useRef<FlatList>(null);
   const messagesQuery = useConversationMessages(id);
+  const metaQuery = useConversationMeta(id);
   const [body, setBody] = useState('');
-  const [sending, setSending] = useState(false);
-  const qc = useQueryClient();
+
+  const other = useMemo(
+    () => metaQuery.data?.participants.find((p) => p.userId !== user?.id),
+    [metaQuery.data, user?.id],
+  );
+  const recipientId = other?.userId;
+  const reply = useReplyInConversation(id, recipientId);
+  const title = fullName(other?.user?.firstName, other?.user?.lastName) || t('messages.title');
 
   useLayoutEffect(() => {
     navigation.setOptions({
-      title: t('messages.title'),
+      title,
       headerStyle: { backgroundColor: colors.background },
       headerTintColor: colors.primary,
     });
-  }, [navigation, t]);
+  }, [navigation, title]);
 
-  if (messagesQuery.isLoading) return <LoadingState />;
+  if (messagesQuery.isLoading || metaQuery.isLoading) return <LoadingState />;
   if (messagesQuery.isError) {
     return <ErrorState onRetry={() => messagesQuery.refetch()} />;
   }
 
   const onSend = async () => {
-    if (!body.trim()) return;
-    setSending(true);
+    const text = body.trim();
+    if (!text || reply.isPending || !recipientId) return;
+    setBody('');
     try {
-      // Backend send requires recipientId; for existing conversation this screen
-      // currently only displays. Keep send UI for follow-up when recipient is known.
-      await qc.invalidateQueries({ queryKey: ['conversation', id] });
-      setBody('');
-    } finally {
-      setSending(false);
+      await reply.mutateAsync(text);
+      requestAnimationFrame(() => listRef.current?.scrollToEnd({ animated: true }));
+    } catch {
+      setBody(text);
     }
   };
 
@@ -62,9 +73,11 @@ export default function ConversationScreen() {
       keyboardVerticalOffset={88}
     >
       <FlatList
+        ref={listRef}
         data={messagesQuery.data ?? []}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.list}
+        onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
         ListEmptyComponent={<EmptyState title={t('messages.empty')} />}
         renderItem={({ item }) => {
           const mine = item.senderId === user?.id;
@@ -80,8 +93,15 @@ export default function ConversationScreen() {
           value={body}
           onChangeText={setBody}
           placeholder={t('messages.placeholder')}
+          onSubmitEditing={onSend}
+          returnKeyType="send"
         />
-        <Button title={t('messages.send')} onPress={onSend} loading={sending} disabled />
+        <Button
+          title={t('messages.send')}
+          onPress={onSend}
+          loading={reply.isPending}
+          disabled={!body.trim() || !recipientId}
+        />
       </View>
     </KeyboardAvoidingView>
   );

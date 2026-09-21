@@ -8,7 +8,7 @@ import { useTranslation } from '@/i18n';
 import { colors, spacing } from '@/theme';
 
 type VisibleTab = {
-  name: 'index' | 'courses' | 'bookings' | 'students' | 'profile';
+  name: 'index' | 'courses' | 'bookings' | 'students' | 'messages' | 'profile';
   title: string;
   href: string;
   icon: (focused: boolean) => keyof typeof Ionicons.glyphMap;
@@ -53,6 +53,13 @@ export default function TutorDashboardLayout() {
         href: '/tutor-dashboard/students',
         icon: (focused) => (focused ? 'people' : 'people-outline'),
         headerShown: true,
+      },
+      {
+        name: 'messages',
+        title: t('tabs.messages'),
+        href: '/tutor-dashboard/messages',
+        icon: (focused) => (focused ? 'chatbubbles' : 'chatbubbles-outline'),
+        headerShown: false,
       },
       {
         name: 'profile',

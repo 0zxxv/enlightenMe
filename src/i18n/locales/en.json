@@ -132,7 +132,8 @@
     "rating": "Rating",
     "expertise": "Expertise",
     "about": "About",
-    "noBio": "No bio yet"
+    "noBio": "No bio yet",
+    "message": "Message tutor"
   },
   "institute": {
     "about": "About",
@@ -177,8 +178,11 @@
     "title": "Messages",
     "empty": "No conversations yet",
     "emptyHint": "Message a tutor after booking a session.",
+    "emptyHintTutor": "Message a student from your students list.",
     "placeholder": "Write a message…",
-    "send": "Send"
+    "send": "Send",
+    "message": "Message",
+    "openFailed": "Could not open this conversation. Book a session together first."
   },
   "profile": {
     "title": "Profile",

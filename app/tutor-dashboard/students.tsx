@@ -1,11 +1,13 @@
-import { Stack } from 'expo-router';
-import React from 'react';
-import { FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { Stack, useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import { Alert, FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
 import { Badge } from '@/components/Badge';
+import { Button } from '@/components/Button';
 import { EmptyState } from '@/components/EmptyState';
 import { ErrorState } from '@/components/ErrorState';
 import { LoadingState } from '@/components/LoadingState';
+import { useOpenConversation } from '@/features/messages/hooks';
 import { useRefresh } from '@/hooks/useRefresh';
 import { useTranslation } from '@/i18n';
 import {
@@ -13,14 +15,32 @@ import {
   type TutorStudentGroup,
 } from '@/services/api/tutorDashboard';
 import { colors, radius, shadows, spacing, typography } from '@/theme';
+import { ApiError } from '@/types/api';
 import { formatDate, formatTime, fullName } from '@/utils/format';
 
 export default function TutorStudentsScreen() {
   const { t, language } = useTranslation();
+  const router = useRouter();
+  const openConversation = useOpenConversation();
+  const [openingId, setOpeningId] = useState<string | null>(null);
   const query = useQuery({ queryKey: ['tutor', 'students'], queryFn: getTutorStudents });
   const { refreshing, onRefresh } = useRefresh(async () => {
     await query.refetch();
   });
+
+  const onMessage = async (studentId: string) => {
+    setOpeningId(studentId);
+    try {
+      const result = await openConversation.mutateAsync(studentId);
+      router.push(`/conversation/${result.conversationId}`);
+    } catch (err) {
+      const message =
+        err instanceof ApiError ? err.message : t('messages.openFailed');
+      Alert.alert(t('messages.title'), message);
+    } finally {
+      setOpeningId(null);
+    }
+  };
 
   const renderItem = ({ item }: { item: TutorStudentGroup }) => (
     <View style={styles.card}>
@@ -43,6 +63,13 @@ export default function TutorStudentsScreen() {
       ) : (
         <Text style={styles.upcoming}>{t('tutorDashboard.noNextSession')}</Text>
       )}
+      <Button
+        title={t('messages.message')}
+        variant="secondary"
+        size="sm"
+        onPress={() => onMessage(item.user.id)}
+        loading={openingId === item.user.id}
+      />
     </View>
   );
 

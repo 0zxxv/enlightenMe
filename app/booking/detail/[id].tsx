@@ -1,12 +1,14 @@
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import React, { useLayoutEffect } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import React, { useLayoutEffect, useState } from 'react';
+import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Badge } from '@/components/Badge';
 import { Button } from '@/components/Button';
 import { ErrorState } from '@/components/ErrorState';
 import { LoadingState } from '@/components/LoadingState';
 import { PriceDisplay } from '@/components/PriceDisplay';
+import { useAuth } from '@/features/auth/useAuth';
+import { useOpenConversation } from '@/features/messages/hooks';
 import { useTranslation } from '@/i18n';
 import * as bookingsApi from '@/services/api/bookings';
 import { colors, radius, shadows, spacing, typography } from '@/theme';
@@ -16,9 +18,12 @@ import { courseTitle, formatDate, formatTime, fullName } from '@/utils/format';
 export default function BookingDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t, language } = useTranslation();
+  const { user } = useAuth();
   const navigation = useNavigation();
   const router = useRouter();
   const qc = useQueryClient();
+  const openConversation = useOpenConversation();
+  const [messaging, setMessaging] = useState(false);
 
   const bookingQuery = useQuery({
     queryKey: ['booking', id],
@@ -42,8 +47,10 @@ export default function BookingDetailScreen() {
   const booking = bookingQuery.data;
   const title = booking.course ? courseTitle(booking.course, language) : booking.courseId;
   const tutorName = fullName(booking.course?.tutor?.firstName, booking.course?.tutor?.lastName);
+  const tutorId = booking.course?.tutorId ?? booking.course?.tutor?.id;
   const canCancel =
     booking.status === 'Pending' || booking.status === 'Confirmed';
+  const canMessage = Boolean(tutorId) && user?.role === 'Student';
 
   const onCancel = async () => {
     try {
@@ -51,8 +58,22 @@ export default function BookingDetailScreen() {
       await qc.invalidateQueries({ queryKey: ['bookings'] });
       await bookingQuery.refetch();
     } catch (err) {
-      // surface via refetch / leave as-is
       console.warn(err instanceof ApiError ? err.message : err);
+    }
+  };
+
+  const onMessage = async () => {
+    if (!tutorId) return;
+    setMessaging(true);
+    try {
+      const result = await openConversation.mutateAsync(tutorId);
+      router.push(`/conversation/${result.conversationId}`);
+    } catch (err) {
+      const message =
+        err instanceof ApiError ? err.message : t('messages.openFailed');
+      Alert.alert(t('messages.title'), message);
+    } finally {
+      setMessaging(false);
     }
   };
 
@@ -82,6 +103,10 @@ export default function BookingDetailScreen() {
           {t('bookings.payment')}: {booking.payment?.status ?? t('bookings.unpaid')}
         </Text>
       </View>
+
+      {canMessage ? (
+        <Button title={t('tutor.message')} onPress={onMessage} loading={messaging} />
+      ) : null}
 
       {booking.courseId ? (
         <Button
