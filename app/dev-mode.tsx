@@ -56,7 +56,13 @@ export default function DevModeScreen() {
         <Button
           title={t('common.back')}
           variant="ghost"
-          onPress={() => router.back()}
+          onPress={() => {
+            if (router.canGoBack()) {
+              router.back();
+              return;
+            }
+            router.replace('/(auth)/login');
+          }}
           disabled={loadingEmail !== null}
         />
       </ScrollView>

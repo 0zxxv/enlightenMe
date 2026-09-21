@@ -39,8 +39,9 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   }
 
   const inAuthGroup = segments[0] === '(auth)';
+  const inPublicDevMode = segments[0] === 'dev-mode';
 
-  if (!isAuthenticated && !inAuthGroup) {
+  if (!isAuthenticated && !inAuthGroup && !inPublicDevMode) {
     return <Redirect href="/(auth)/welcome" />;
   }
 
@@ -68,6 +69,7 @@ function RootNavigator() {
         }}
       >
         <Stack.Screen name="(auth)" />
+        <Stack.Screen name="dev-mode" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="course/[id]" options={{ headerShown: true, title: '' }} />
         <Stack.Screen name="tutor/[id]" options={{ headerShown: true, title: '' }} />

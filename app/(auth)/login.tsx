@@ -88,7 +88,7 @@ export default function LoginScreen() {
             <Button
               title={t('auth.devMode')}
               variant="ghost"
-              onPress={() => router.push('/(auth)/dev-mode')}
+              onPress={() => router.push('/dev-mode')}
               disabled={loading}
             />
           </View>
