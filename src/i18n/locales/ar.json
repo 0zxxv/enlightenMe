@@ -191,6 +191,7 @@
     "emptyCourses": "لا توجد دورات بعد",
     "emptyStudents": "لا يوجد طلاب بعد",
     "emptyBookings": "لا توجد جلسات قادمة",
+    "openApp": "فتح ملف التطبيق",
     "verificationStatus": "حالة التوثيق",
     "verificationHint": "ارفع مستندات الهوية من بوابة الويب لإكمال التوثيق.",
     "createTitle": "دورة جديدة",

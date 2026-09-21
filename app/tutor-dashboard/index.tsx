@@ -1,10 +1,12 @@
 import { Stack, useRouter } from 'expo-router';
 import React from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useQuery } from '@tanstack/react-query';
+import { Button } from '@/components/Button';
 import { EmptyState } from '@/components/EmptyState';
 import { ErrorState } from '@/components/ErrorState';
 import { LoadingState } from '@/components/LoadingState';
-import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/features/auth/useAuth';
 import { useRefresh } from '@/hooks/useRefresh';
 import { useTranslation } from '@/i18n';
 import {
@@ -17,6 +19,7 @@ import { colors, radius, shadows, spacing, typography } from '@/theme';
 export default function TutorDashboardHome() {
   const { t } = useTranslation();
   const router = useRouter();
+  const { logout } = useAuth();
   const upcomingQuery = useQuery({
     queryKey: ['tutor', 'upcoming'],
     queryFn: getTutorUpcoming,
@@ -41,6 +44,11 @@ export default function TutorDashboardHome() {
   const loading =
     upcomingQuery.isLoading || earningsQuery.isLoading || coursesQuery.isLoading;
   const error = upcomingQuery.isError || earningsQuery.isError || coursesQuery.isError;
+
+  const onLogout = async () => {
+    await logout();
+    router.replace('/(auth)/login');
+  };
 
   return (
     <>
@@ -131,6 +139,16 @@ export default function TutorDashboardHome() {
               </View>
             ))
           )}
+
+          <View style={styles.accountActions}>
+            <Button
+              title={t('tutorDashboard.openApp')}
+              variant="secondary"
+              onPress={() => router.push('/(tabs)/profile')}
+            />
+            <Button title={t('auth.devMode')} variant="ghost" onPress={() => router.push('/dev-mode')} />
+            <Button title={t('common.logout')} variant="danger" onPress={onLogout} />
+          </View>
         </ScrollView>
       ) : null}
     </>
@@ -167,4 +185,5 @@ const styles = StyleSheet.create({
   },
   rowTitle: { ...typography.body, color: colors.text, fontWeight: '600' },
   rowMeta: { ...typography.caption, color: colors.textMuted, marginTop: spacing.xs },
+  accountActions: { gap: spacing.sm, marginTop: spacing.xl },
 });

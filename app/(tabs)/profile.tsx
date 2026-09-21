@@ -57,7 +57,15 @@ export default function ProfileScreen() {
         ) : null}
       </View>
 
-      <Button title={t('common.logout')} onPress={() => logout()} variant="danger" />
+      <Button
+        title={t('common.logout')}
+        variant="danger"
+        onPress={async () => {
+          await logout();
+          router.replace('/(auth)/login');
+        }}
+      />
+      <Button title={t('auth.devMode')} variant="ghost" onPress={() => router.push('/dev-mode')} />
       <Text style={styles.version}>
         {t('brand.name')} · {t('profile.version')} 1.0.0
       </Text>

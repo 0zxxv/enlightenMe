@@ -191,6 +191,7 @@
     "emptyCourses": "No courses yet",
     "emptyStudents": "No students yet",
     "emptyBookings": "No upcoming sessions",
+    "openApp": "Open app profile",
     "verificationStatus": "Verification status",
     "verificationHint": "Upload identity documents from the web portal to complete verification.",
     "createTitle": "New course",
