@@ -1,4 +1,11 @@
-import { CourseFormat, CourseStatus, CourseType, Prisma, Role } from '@prisma/client';
+import {
+  CourseFormat,
+  CourseStatus,
+  CourseType,
+  Prisma,
+  Role,
+  SessionStatus,
+} from '@prisma/client';
 import { z } from 'zod';
 import { AppError } from '../../lib/errors.js';
 import { prisma } from '../../lib/prisma.js';
@@ -15,7 +22,13 @@ export const listCoursesQuerySchema = z.object({
   minRating: z.coerce.number().min(0).max(5).optional(),
   universityId: z.string().uuid().optional(),
   courseCode: z.string().optional(),
+  /** Owner-only; public list always forces Published. */
   status: z.nativeEnum(CourseStatus).optional(),
+  tutorId: z.string().uuid().optional(),
+  mine: z
+    .union([z.literal('true'), z.literal('false'), z.boolean()])
+    .optional()
+    .transform((v) => v === true || v === 'true'),
 });
 
 export const createCourseSchema = z.object({
@@ -39,7 +52,7 @@ export const createCourseSchema = z.object({
   capacity: z.number().int().positive().default(1),
   format: z.nativeEnum(CourseFormat).default(CourseFormat.Online),
   location: z.string().optional(),
-  imageUrl: z.string().url().optional(),
+  imageUrl: z.string().url().optional().or(z.literal('')).transform((v) => v || undefined),
   curriculum: z
     .array(
       z.object({
@@ -53,6 +66,19 @@ export const createCourseSchema = z.object({
 });
 
 export const updateCourseSchema = createCourseSchema.partial();
+
+export const createSessionSchema = z.object({
+  startsAt: z.string().datetime(),
+  endsAt: z.string().datetime(),
+  seatsTotal: z.number().int().positive().optional(),
+});
+
+export const updateSessionSchema = z.object({
+  startsAt: z.string().datetime().optional(),
+  endsAt: z.string().datetime().optional(),
+  seatsTotal: z.number().int().positive().optional(),
+  status: z.nativeEnum(SessionStatus).optional(),
+});
 
 const courseInclude = {
   category: true,
@@ -70,12 +96,44 @@ const courseInclude = {
   institute: true,
   curriculum: { orderBy: { order: 'asc' as const } },
   sessions: { orderBy: { startsAt: 'asc' as const } },
+  _count: { select: { bookings: true } },
 } satisfies Prisma.CourseInclude;
 
-export async function listCourses(query: z.infer<typeof listCoursesQuerySchema>) {
-  const where: Prisma.CourseWhereInput = {
-    status: query.status ?? CourseStatus.Published,
-  };
+function assertOwner(course: { tutorId: string | null }, userId: string, role: Role) {
+  if (role !== Role.Admin && course.tutorId !== userId) {
+    throw new AppError('FORBIDDEN', 'You can only manage your own courses', 403);
+  }
+}
+
+export async function listCourses(
+  query: z.infer<typeof listCoursesQuerySchema>,
+  viewer?: { sub: string; role: Role },
+) {
+  const where: Prisma.CourseWhereInput = {};
+
+  const viewingOwn =
+    Boolean(query.mine && viewer) ||
+    (Boolean(query.tutorId) && viewer && query.tutorId === viewer.sub) ||
+    (query.status &&
+      query.status !== CourseStatus.Published &&
+      viewer &&
+      (viewer.role === Role.Admin || viewer.role === Role.Tutor));
+
+  if (query.mine && viewer) {
+    where.tutorId = viewer.sub;
+    if (query.status) where.status = query.status;
+  } else if (viewingOwn && viewer?.role === Role.Admin && query.tutorId) {
+    where.tutorId = query.tutorId;
+    if (query.status) where.status = query.status;
+  } else if (viewingOwn && viewer && query.status && query.status !== CourseStatus.Published) {
+    // Tutor requesting non-published: only their own
+    where.tutorId = viewer.sub;
+    where.status = query.status;
+  } else {
+    // Public marketplace: Published only — ignore client status overrides
+    where.status = CourseStatus.Published;
+    if (query.tutorId) where.tutorId = query.tutorId;
+  }
 
   if (query.q) {
     where.OR = [
@@ -83,6 +141,16 @@ export async function listCourses(query: z.infer<typeof listCoursesQuerySchema>)
       { titleAr: { contains: query.q, mode: 'insensitive' } },
       { description: { contains: query.q, mode: 'insensitive' } },
       { courseCode: { contains: query.q, mode: 'insensitive' } },
+      {
+        tutor: {
+          OR: [
+            { firstName: { contains: query.q, mode: 'insensitive' } },
+            { lastName: { contains: query.q, mode: 'insensitive' } },
+          ],
+        },
+      },
+      { subject: { nameEn: { contains: query.q, mode: 'insensitive' } } },
+      { subject: { nameAr: { contains: query.q, mode: 'insensitive' } } },
     ];
   }
   if (query.category) {
@@ -120,7 +188,10 @@ export async function listCourses(query: z.infer<typeof listCoursesQuerySchema>)
   };
 }
 
-export async function getCourseById(id: string) {
+export async function getCourseById(
+  id: string,
+  viewer?: { sub: string; role: Role },
+) {
   const course = await prisma.course.findUnique({
     where: { id },
     include: {
@@ -137,6 +208,29 @@ export async function getCourseById(id: string) {
   if (!course) {
     throw new AppError('NOT_FOUND', 'Course not found', 404);
   }
+
+  const isOwner =
+    viewer &&
+    (viewer.role === Role.Admin || course.tutorId === viewer.sub);
+
+  if (course.status !== CourseStatus.Published && !isOwner) {
+    throw new AppError('NOT_FOUND', 'Course not found', 404);
+  }
+
+  // Public viewers only see bookable future scheduled sessions with seats
+  if (!isOwner) {
+    const now = new Date();
+    return {
+      ...course,
+      sessions: course.sessions.filter(
+        (s) =>
+          s.status === SessionStatus.Scheduled &&
+          s.startsAt > now &&
+          s.seatsAvailable > 0,
+      ),
+    };
+  }
+
   return course;
 }
 
@@ -180,12 +274,10 @@ export async function updateCourse(
   if (!course) {
     throw new AppError('NOT_FOUND', 'Course not found', 404);
   }
-  if (role !== Role.Admin && course.tutorId !== userId) {
-    throw new AppError('FORBIDDEN', 'You can only update your own courses', 403);
-  }
+  assertOwner(course, userId, role);
 
   const { curriculum, ...data } = input;
-  const updated = await prisma.$transaction(async (tx) => {
+  return prisma.$transaction(async (tx) => {
     if (curriculum) {
       await tx.courseCurriculumItem.deleteMany({ where: { courseId } });
       await tx.courseCurriculumItem.createMany({
@@ -204,21 +296,227 @@ export async function updateCourse(
       include: courseInclude,
     });
   });
-
-  return updated;
 }
 
 export async function publishCourse(courseId: string, userId: string, role: Role) {
-  const course = await prisma.course.findUnique({ where: { id: courseId } });
+  const course = await prisma.course.findUnique({
+    where: { id: courseId },
+    include: { sessions: true },
+  });
   if (!course) {
     throw new AppError('NOT_FOUND', 'Course not found', 404);
   }
-  if (role !== Role.Admin && course.tutorId !== userId) {
-    throw new AppError('FORBIDDEN', 'You can only publish your own courses', 403);
+  assertOwner(course, userId, role);
+
+  if (!course.title?.trim() || !course.description?.trim()) {
+    throw new AppError('VALIDATION', 'Title and description are required to publish', 400);
   }
+  if (Number(course.priceDecimal) <= 0) {
+    throw new AppError('VALIDATION', 'Price must be greater than zero to publish', 400);
+  }
+
+  const now = new Date();
+  const futureSessions = course.sessions.filter(
+    (s) => s.status === SessionStatus.Scheduled && s.startsAt > now,
+  );
+  if (futureSessions.length === 0) {
+    throw new AppError(
+      'VALIDATION',
+      'Add at least one upcoming session before publishing',
+      400,
+    );
+  }
+
   return prisma.course.update({
     where: { id: courseId },
     data: { status: CourseStatus.Published },
     include: courseInclude,
+  });
+}
+
+export async function setCourseStatus(
+  courseId: string,
+  userId: string,
+  role: Role,
+  status: CourseStatus,
+) {
+  const course = await prisma.course.findUnique({ where: { id: courseId } });
+  if (!course) {
+    throw new AppError('NOT_FOUND', 'Course not found', 404);
+  }
+  assertOwner(course, userId, role);
+
+  if (status === CourseStatus.Published) {
+    return publishCourse(courseId, userId, role);
+  }
+
+  return prisma.course.update({
+    where: { id: courseId },
+    data: { status },
+    include: courseInclude,
+  });
+}
+
+export async function listSessions(courseId: string, viewer?: { sub: string; role: Role }) {
+  const course = await prisma.course.findUnique({ where: { id: courseId } });
+  if (!course) {
+    throw new AppError('NOT_FOUND', 'Course not found', 404);
+  }
+
+  const isOwner =
+    viewer && (viewer.role === Role.Admin || course.tutorId === viewer.sub);
+
+  if (course.status !== CourseStatus.Published && !isOwner) {
+    throw new AppError('NOT_FOUND', 'Course not found', 404);
+  }
+
+  const now = new Date();
+  const sessions = await prisma.courseSession.findMany({
+    where: {
+      courseId,
+      ...(isOwner
+        ? {}
+        : {
+            status: SessionStatus.Scheduled,
+            startsAt: { gt: now },
+            seatsAvailable: { gt: 0 },
+          }),
+    },
+    orderBy: { startsAt: 'asc' },
+    include: isOwner
+      ? {
+          bookings: {
+            where: {
+              status: { in: ['Pending', 'Confirmed', 'Completed'] },
+            },
+            select: { id: true, userId: true, status: true },
+          },
+        }
+      : undefined,
+  });
+
+  return sessions;
+}
+
+export async function createSession(
+  courseId: string,
+  userId: string,
+  role: Role,
+  input: z.infer<typeof createSessionSchema>,
+) {
+  const course = await prisma.course.findUnique({ where: { id: courseId } });
+  if (!course) {
+    throw new AppError('NOT_FOUND', 'Course not found', 404);
+  }
+  assertOwner(course, userId, role);
+
+  const startsAt = new Date(input.startsAt);
+  const endsAt = new Date(input.endsAt);
+  if (!(endsAt > startsAt)) {
+    throw new AppError('VALIDATION', 'endsAt must be after startsAt', 400);
+  }
+  if (startsAt <= new Date()) {
+    throw new AppError('VALIDATION', 'Session must start in the future', 400);
+  }
+
+  const seatsTotal = input.seatsTotal ?? course.capacity;
+
+  return prisma.courseSession.create({
+    data: {
+      courseId,
+      startsAt,
+      endsAt,
+      seatsTotal,
+      seatsAvailable: seatsTotal,
+      status: SessionStatus.Scheduled,
+    },
+  });
+}
+
+export async function updateSession(
+  courseId: string,
+  sessionId: string,
+  userId: string,
+  role: Role,
+  input: z.infer<typeof updateSessionSchema>,
+) {
+  const course = await prisma.course.findUnique({ where: { id: courseId } });
+  if (!course) {
+    throw new AppError('NOT_FOUND', 'Course not found', 404);
+  }
+  assertOwner(course, userId, role);
+
+  const session = await prisma.courseSession.findFirst({
+    where: { id: sessionId, courseId },
+  });
+  if (!session) {
+    throw new AppError('NOT_FOUND', 'Session not found', 404);
+  }
+
+  const startsAt = input.startsAt ? new Date(input.startsAt) : session.startsAt;
+  const endsAt = input.endsAt ? new Date(input.endsAt) : session.endsAt;
+  if (!(endsAt > startsAt)) {
+    throw new AppError('VALIDATION', 'endsAt must be after startsAt', 400);
+  }
+
+  let seatsAvailable = session.seatsAvailable;
+  if (input.seatsTotal !== undefined) {
+    const taken = session.seatsTotal - session.seatsAvailable;
+    if (input.seatsTotal < taken) {
+      throw new AppError(
+        'VALIDATION',
+        'seatsTotal cannot be less than already booked seats',
+        400,
+      );
+    }
+    seatsAvailable = input.seatsTotal - taken;
+  }
+
+  return prisma.courseSession.update({
+    where: { id: sessionId },
+    data: {
+      startsAt,
+      endsAt,
+      seatsTotal: input.seatsTotal,
+      seatsAvailable,
+      status: input.status,
+    },
+  });
+}
+
+export async function deleteSession(
+  courseId: string,
+  sessionId: string,
+  userId: string,
+  role: Role,
+) {
+  const course = await prisma.course.findUnique({ where: { id: courseId } });
+  if (!course) {
+    throw new AppError('NOT_FOUND', 'Course not found', 404);
+  }
+  assertOwner(course, userId, role);
+
+  const session = await prisma.courseSession.findFirst({
+    where: { id: sessionId, courseId },
+    include: {
+      bookings: {
+        where: { status: { in: ['Pending', 'Confirmed'] } },
+      },
+    },
+  });
+  if (!session) {
+    throw new AppError('NOT_FOUND', 'Session not found', 404);
+  }
+  if (session.bookings.length > 0) {
+    throw new AppError(
+      'INVALID_STATUS',
+      'Cannot delete a session with active bookings; cancel it instead',
+      400,
+    );
+  }
+
+  return prisma.courseSession.update({
+    where: { id: sessionId },
+    data: { status: SessionStatus.Cancelled },
   });
 }

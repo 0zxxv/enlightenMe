@@ -65,6 +65,11 @@ export default function BookingConfirmationScreen() {
         </Text>
       </View>
       <Button title={t('booking.viewBookings')} onPress={() => router.replace('/(tabs)/bookings')} />
+      <Button
+        title={t('booking.viewBooking')}
+        variant="ghost"
+        onPress={() => router.replace(`/booking/detail/${booking.id}`)}
+      />
     </View>
   );
 }

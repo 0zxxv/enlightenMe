@@ -2,24 +2,35 @@ import { Stack, useRouter } from 'expo-router';
 import React from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
-import { Button } from '@/components/Button';
+import { Badge } from '@/components/Badge';
 import { EmptyState } from '@/components/EmptyState';
 import { ErrorState } from '@/components/ErrorState';
 import { LoadingState } from '@/components/LoadingState';
-import { useAuth } from '@/features/auth/useAuth';
+import { PriceDisplay } from '@/components/PriceDisplay';
 import { useRefresh } from '@/hooks/useRefresh';
 import { useTranslation } from '@/i18n';
 import {
   getTutorCourses,
   getTutorEarnings,
   getTutorUpcoming,
+  type TutorCourseRow,
+  type TutorUpcomingSession,
 } from '@/services/api/tutorDashboard';
 import { colors, radius, shadows, spacing, typography } from '@/theme';
+import type { CourseStatus } from '@/types/models';
+import { formatDate, formatTime } from '@/utils/format';
+
+function statusTone(status: CourseStatus): 'primary' | 'success' | 'warning' | 'neutral' {
+  if (status === 'Published') return 'success';
+  if (status === 'Paused') return 'warning';
+  if (status === 'Draft') return 'neutral';
+  return 'primary';
+}
 
 export default function TutorDashboardHome() {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
   const router = useRouter();
-  const { logout } = useAuth();
+
   const upcomingQuery = useQuery({
     queryKey: ['tutor', 'upcoming'],
     queryFn: getTutorUpcoming,
@@ -45,10 +56,17 @@ export default function TutorDashboardHome() {
     upcomingQuery.isLoading || earningsQuery.isLoading || coursesQuery.isLoading;
   const error = upcomingQuery.isError || earningsQuery.isError || coursesQuery.isError;
 
-  const onLogout = async () => {
-    await logout();
-    router.replace('/(auth)/login');
-  };
+  const currency = earningsQuery.data?.currency ?? 'BHD';
+  const upcoming = (upcomingQuery.data ?? []).slice(0, 5);
+  const courses = (coursesQuery.data ?? []).slice(0, 5);
+
+  const quickLinks = [
+    { label: t('tutorDashboard.courses'), href: '/tutor-dashboard/courses' as const },
+    { label: t('tutorDashboard.createCourse'), href: '/tutor-dashboard/create' as const },
+    { label: t('tutorDashboard.bookings'), href: '/tutor-dashboard/bookings' as const },
+    { label: t('tutorDashboard.students'), href: '/tutor-dashboard/students' as const },
+    { label: t('tutorDashboard.earnings'), href: '/tutor-dashboard/earnings' as const },
+  ];
 
   return (
     <>
@@ -79,76 +97,114 @@ export default function TutorDashboardHome() {
           <View style={styles.cards}>
             <View style={styles.card}>
               <Text style={styles.cardLabel}>{t('tutorDashboard.paidTotal')}</Text>
-              <Text style={styles.cardValue}>
-                {earningsQuery.data?.currency}{' '}
-                {Number(earningsQuery.data?.paidTotal ?? 0).toFixed(3)}
-              </Text>
+              <PriceDisplay
+                amount={earningsQuery.data?.paidTotal ?? 0}
+                currency={currency}
+                compact
+              />
+            </View>
+            <View style={styles.card}>
+              <Text style={styles.cardLabel}>{t('tutorDashboard.pendingPayment')}</Text>
+              <PriceDisplay
+                amount={earningsQuery.data?.pendingPaymentAmount ?? 0}
+                currency={currency}
+                compact
+              />
             </View>
             <View style={styles.card}>
               <Text style={styles.cardLabel}>{t('tutorDashboard.pendingPayout')}</Text>
-              <Text style={styles.cardValue}>
-                {earningsQuery.data?.currency}{' '}
-                {Number(earningsQuery.data?.pendingPayoutAmount ?? 0).toFixed(3)}
-              </Text>
+              <PriceDisplay
+                amount={earningsQuery.data?.pendingPayoutAmount ?? 0}
+                currency={currency}
+                compact
+              />
             </View>
           </View>
 
+          <Text style={styles.heading}>{t('tutorDashboard.quickActions')}</Text>
           <View style={styles.links}>
-            {[
-              { label: t('tutorDashboard.courses'), href: '/tutor-dashboard/courses' as const },
-              {
-                label: t('tutorDashboard.createCourse'),
-                href: '/tutor-dashboard/create' as const,
-              },
-              { label: t('tutorDashboard.bookings'), href: '/tutor-dashboard/bookings' as const },
-              { label: t('tutorDashboard.students'), href: '/tutor-dashboard/students' as const },
-              { label: t('tutorDashboard.earnings'), href: '/tutor-dashboard/earnings' as const },
-              {
-                label: t('tutorDashboard.verification'),
-                href: '/tutor-dashboard/verification' as const,
-              },
-            ].map((link) => (
+            {quickLinks.map((link) => (
               <Pressable key={link.href} style={styles.link} onPress={() => router.push(link.href)}>
                 <Text style={styles.linkText}>{link.label}</Text>
               </Pressable>
             ))}
           </View>
 
-          <Text style={styles.heading}>{t('tutorDashboard.bookings')}</Text>
-          {(upcomingQuery.data?.length ?? 0) === 0 ? (
-            <EmptyState title={t('tutorDashboard.emptyBookings')} />
-          ) : (
-            upcomingQuery.data?.slice(0, 5).map((item: any) => (
-              <View key={item.id} style={styles.row}>
-                <Text style={styles.rowTitle}>
-                  {item.course?.title ?? item.courseId ?? item.id}
-                </Text>
-                <Text style={styles.rowMeta}>{item.status}</Text>
-              </View>
-            ))
-          )}
-
-          <Text style={styles.heading}>{t('tutorDashboard.courses')}</Text>
-          {(coursesQuery.data?.length ?? 0) === 0 ? (
-            <EmptyState title={t('tutorDashboard.emptyCourses')} />
-          ) : (
-            coursesQuery.data?.map((course) => (
-              <View key={course.id} style={styles.row}>
-                <Text style={styles.rowTitle}>{course.title}</Text>
-                <Text style={styles.rowMeta}>{course.status}</Text>
-              </View>
-            ))
-          )}
-
-          <View style={styles.accountActions}>
-            <Button
-              title={t('tutorDashboard.openApp')}
-              variant="secondary"
-              onPress={() => router.push('/(tabs)/profile')}
-            />
-            <Button title={t('auth.devMode')} variant="ghost" onPress={() => router.push('/dev-mode')} />
-            <Button title={t('common.logout')} variant="danger" onPress={onLogout} />
+          <View style={styles.sectionHeader}>
+            <Text style={styles.heading}>{t('tutorDashboard.bookings')}</Text>
+            <Pressable onPress={() => router.push('/tutor-dashboard/bookings')} hitSlop={8}>
+              <Text style={styles.seeAll}>{t('common.seeAll')}</Text>
+            </Pressable>
           </View>
+          {upcoming.length === 0 ? (
+            <EmptyState
+              title={t('tutorDashboard.emptyBookings')}
+              subtitle={t('tutorDashboard.emptyBookingsHint')}
+              icon="calendar-outline"
+            />
+          ) : (
+            upcoming.map((item: TutorUpcomingSession) => (
+              <View key={item.id} style={styles.row}>
+                <View style={styles.rowTop}>
+                  <Text style={styles.rowTitle} numberOfLines={2}>
+                    {item.course.title}
+                  </Text>
+                  <Badge
+                    label={`${item.bookings.length} ${t('tutorDashboard.studentsCount')}`}
+                    tone="primary"
+                  />
+                </View>
+                <Text style={styles.rowMeta}>
+                  {formatDate(item.startsAt, language)} · {formatTime(item.startsAt, language)}
+                </Text>
+              </View>
+            ))
+          )}
+
+          <View style={styles.sectionHeader}>
+            <Text style={styles.heading}>{t('tutorDashboard.myCoursesPreview')}</Text>
+            <Pressable onPress={() => router.push('/tutor-dashboard/courses')} hitSlop={8}>
+              <Text style={styles.seeAll}>{t('common.seeAll')}</Text>
+            </Pressable>
+          </View>
+          {courses.length === 0 ? (
+            <EmptyState
+              title={t('tutorDashboard.emptyCourses')}
+              subtitle={t('tutorDashboard.emptyCoursesHint')}
+              icon="book-outline"
+            />
+          ) : (
+            courses.map((course: TutorCourseRow) => (
+              <Pressable
+                key={course.id}
+                style={styles.row}
+                onPress={() =>
+                  router.push({
+                    pathname: '/tutor-dashboard/create',
+                    params: { courseId: course.id },
+                  })
+                }
+              >
+                <View style={styles.rowTop}>
+                  <Text style={styles.rowTitle} numberOfLines={2}>
+                    {course.title}
+                  </Text>
+                  <Badge label={course.status} tone={statusTone(course.status)} />
+                </View>
+                <View style={styles.rowBottom}>
+                  <Text style={styles.rowMeta}>
+                    {course._count?.bookings ?? 0} {t('tutorDashboard.studentsCount')}
+                  </Text>
+                  <PriceDisplay
+                    amount={course.priceDecimal}
+                    currency={course.currency}
+                    sessionCount={course.sessionCount}
+                    compact
+                  />
+                </View>
+              </Pressable>
+            ))
+          )}
         </ScrollView>
       ) : null}
     </>
@@ -159,16 +215,24 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.xl, gap: spacing.lg, paddingBottom: spacing.massive },
   heading: { ...typography.subheading, color: colors.text },
-  cards: { flexDirection: 'row', gap: spacing.md },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  seeAll: { ...typography.caption, color: colors.primary, fontWeight: '700' },
+  cards: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
   card: {
-    flex: 1,
+    flexGrow: 1,
+    flexBasis: '30%',
+    minWidth: 100,
     backgroundColor: colors.white,
     borderRadius: radius.lg,
     padding: spacing.lg,
+    gap: spacing.xs,
     ...shadows.sm,
   },
   cardLabel: { ...typography.caption, color: colors.textSecondary },
-  cardValue: { ...typography.heading, color: colors.primary, fontSize: 18, marginTop: spacing.sm },
   links: { gap: spacing.sm },
   link: {
     backgroundColor: colors.white,
@@ -181,9 +245,21 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderRadius: radius.lg,
     padding: spacing.lg,
-    marginBottom: spacing.sm,
+    gap: spacing.sm,
+    ...shadows.sm,
   },
-  rowTitle: { ...typography.body, color: colors.text, fontWeight: '600' },
-  rowMeta: { ...typography.caption, color: colors.textMuted, marginTop: spacing.xs },
-  accountActions: { gap: spacing.sm, marginTop: spacing.xl },
+  rowTop: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  rowBottom: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  rowTitle: { ...typography.body, color: colors.text, fontWeight: '600', flex: 1 },
+  rowMeta: { ...typography.caption, color: colors.textMuted },
 });

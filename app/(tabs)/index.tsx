@@ -1,4 +1,5 @@
-import { Image } from 'expo-image';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import {
@@ -10,7 +11,6 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Chip } from '@/components/Chip';
 import { CourseCard } from '@/components/CourseCard';
 import { EmptyState } from '@/components/EmptyState';
 import { ErrorState } from '@/components/ErrorState';
@@ -21,6 +21,7 @@ import { SectionHeader } from '@/components/SectionHeader';
 import { CATEGORY_CHIPS, POPULAR_SUBJECTS } from '@/constants/catalog';
 import { useAuth } from '@/features/auth/useAuth';
 import { useCourses } from '@/features/courses/hooks';
+import { useLayout } from '@/hooks/useLayout';
 import { useRefresh } from '@/hooks/useRefresh';
 import { useTranslation } from '@/i18n';
 import { colors, radius, shadows, spacing, typography } from '@/theme';
@@ -30,45 +31,51 @@ export default function HomeScreen() {
   const { t, language } = useTranslation();
   const { user } = useAuth();
   const router = useRouter();
+  const layout = useLayout();
   const [query, setQuery] = useState('');
-  const [courseType, setCourseType] = useState<'School' | 'University' | 'Skills' | undefined>();
 
-  const coursesQuery = useCourses({
-    pageSize: 6,
-    type: courseType,
-    q: query || undefined,
-  });
+  const coursesQuery = useCourses({ pageSize: layout.courseColumns * 2 });
 
   const { refreshing, onRefresh } = useRefresh(async () => {
     await coursesQuery.refetch();
   });
 
   const greeting = t(greetingKey());
+  const firstName = user?.firstName ?? t('brand.name');
 
-  const subjects = useMemo(
-    () => POPULAR_SUBJECTS.map((s) => (language === 'ar' ? s.ar : s.en)),
-    [language],
-  );
+  const subjects = useMemo(() => {
+    const count = layout.subjectColumns;
+    return POPULAR_SUBJECTS.slice(0, Math.max(4, count));
+  }, [layout.subjectColumns]);
+
+  const onSearch = () => {
+    router.push({ pathname: '/(tabs)/explore', params: { q: query } });
+  };
+
+  const courseGap = spacing.md;
+  const courseWidthPct = `${100 / layout.courseColumns}%` as `${number}%`;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          {
+            paddingHorizontal: layout.contentPadding,
+            paddingBottom: spacing.massive,
+            maxWidth: layout.contentMaxWidth ?? '100%',
+            alignSelf: 'center',
+            width: '100%',
+          },
+        ]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <Image
-              source={require('../../assets/images/dars_icon.png')}
-              style={styles.brandIcon}
-              contentFit="contain"
-              accessibilityLabel={t('brand.name')}
-            />
-            <View>
-              <Text style={styles.greeting}>{greeting}</Text>
-              <Text style={styles.name}>{user?.firstName ?? t('brand.name')}</Text>
-            </View>
-          </View>
+          <Text style={styles.greetingLine} numberOfLines={2}>
+            {greeting}, <Text style={styles.greetingName}>{firstName}</Text>{' '}
+            <Text style={styles.wave}>👋</Text>
+          </Text>
           <IconButton name="notifications-outline" onPress={() => undefined} />
         </View>
 
@@ -76,48 +83,84 @@ export default function HomeScreen() {
           value={query}
           onChangeText={setQuery}
           placeholder={t('home.searchPlaceholder')}
-          onSubmit={() => router.push({ pathname: '/(tabs)/explore', params: { q: query } })}
+          onSubmit={onSearch}
+          trailingIcon="scan-outline"
+          onTrailingPress={onSearch}
         />
 
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+        <View style={styles.categoryRow}>
           {CATEGORY_CHIPS.map((chip) => (
-            <Chip
+            <Pressable
               key={chip.id}
-              label={t(chip.labelKey)}
-              selected={courseType?.toLowerCase() === chip.id}
+              style={styles.categoryItem}
               onPress={() => {
                 if (chip.id === 'institutes') {
                   router.push({ pathname: '/(tabs)/explore', params: { tab: 'institutes' } });
                   return;
                 }
-                const next = (chip.id.charAt(0).toUpperCase() + chip.id.slice(1)) as
-                  | 'School'
-                  | 'University'
-                  | 'Skills';
-                setCourseType((prev) => (prev === next ? undefined : next));
+                router.push({
+                  pathname: '/(tabs)/explore',
+                  params: { tab: 'courses', type: chip.id },
+                });
               }}
-            />
+            >
+              <View style={[styles.categoryIcon, { backgroundColor: chip.soft }]}>
+                <Ionicons name={chip.icon} size={26} color={chip.tint} />
+              </View>
+              <Text style={styles.categoryLabel}>{t(chip.labelKey)}</Text>
+            </Pressable>
           ))}
-        </ScrollView>
+        </View>
 
-        <Pressable style={styles.promo} onPress={() => router.push('/(tabs)/explore')}>
-          <Text style={styles.promoTitle}>{t('home.promoTitle')}</Text>
-          <Text style={styles.promoSubtitle}>{t('home.promoSubtitle')}</Text>
+        <Pressable
+          style={styles.promoWrap}
+          onPress={() => router.push('/(tabs)/explore')}
+        >
+          <LinearGradient
+            colors={['#D8E4F8', '#E6DFF0', '#F0E8F5']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.promo}
+          >
+            <View style={styles.promoCopy}>
+              <Text style={styles.promoTitle}>{t('home.promoTitle')}</Text>
+              <Text style={styles.promoSubtitle}>{t('home.promoSubtitle')}</Text>
+            </View>
+            <View style={styles.promoArrow}>
+              <Ionicons name="arrow-forward" size={20} color={colors.primary} />
+            </View>
+          </LinearGradient>
         </Pressable>
 
-        <SectionHeader title={t('home.popularSubjects')} />
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+        <SectionHeader
+          title={t('home.popularSubjects')}
+          actionLabel={t('common.seeAll')}
+          onAction={() => router.push('/(tabs)/explore')}
+        />
+        <View style={styles.subjectGrid}>
           {subjects.map((subject) => (
-            <Chip
-              key={subject}
-              label={subject}
-              onPress={() => {
-                setQuery(subject);
-                router.push({ pathname: '/(tabs)/explore', params: { q: subject } });
-              }}
-            />
+            <Pressable
+              key={subject.id}
+              style={[
+                styles.subjectItem,
+                { width: `${100 / Math.min(layout.subjectColumns, subjects.length)}%` },
+              ]}
+              onPress={() =>
+                router.push({
+                  pathname: '/(tabs)/explore',
+                  params: { q: language === 'ar' ? subject.ar : subject.en },
+                })
+              }
+            >
+              <View style={[styles.subjectIcon, { backgroundColor: subject.soft }]}>
+                <Ionicons name={subject.icon} size={22} color={subject.tint} />
+              </View>
+              <Text style={styles.subjectLabel} numberOfLines={1}>
+                {language === 'ar' ? subject.ar : subject.en}
+              </Text>
+            </Pressable>
           ))}
-        </ScrollView>
+        </View>
 
         <SectionHeader
           title={t('home.featuredCourses')}
@@ -130,11 +173,28 @@ export default function HomeScreen() {
           <ErrorState onRetry={() => coursesQuery.refetch()} />
         ) : null}
         {!coursesQuery.isLoading && !coursesQuery.isError && !coursesQuery.data?.data.length ? (
-          <EmptyState />
+          <EmptyState
+            title={t('common.empty')}
+            subtitle={t('home.emptyCoursesHint')}
+            actionLabel={t('tabs.explore')}
+            onAction={() => router.push('/(tabs)/explore')}
+          />
         ) : null}
-        {coursesQuery.data?.data.map((course) => (
-          <CourseCard key={course.id} course={course} />
-        ))}
+
+        <View style={[styles.courseGrid, { marginHorizontal: -courseGap / 2 }]}>
+          {coursesQuery.data?.data.map((course) => (
+            <View
+              key={course.id}
+              style={{
+                width: courseWidthPct,
+                paddingHorizontal: courseGap / 2,
+                marginBottom: courseGap,
+              }}
+            >
+              <CourseCard course={course} variant="featured" />
+            </View>
+          ))}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -142,32 +202,115 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
-  content: { padding: spacing.xl, gap: spacing.lg, paddingBottom: spacing.massive },
+  content: {
+    gap: spacing.lg,
+    paddingTop: spacing.md,
+  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: spacing.md,
   },
-  headerLeft: {
+  greetingLine: {
+    ...typography.heading,
+    color: colors.text,
+    flex: 1,
+    fontSize: 26,
+    lineHeight: 32,
+  },
+  greetingName: {
+    fontWeight: '800',
+    color: colors.text,
+  },
+  wave: {
+    fontSize: 24,
+  },
+  categoryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
+  categoryItem: {
+    flex: 1,
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  categoryIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  categoryLabel: {
+    ...typography.caption,
+    color: colors.text,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  promoWrap: {
+    borderRadius: radius.xxl,
+    overflow: 'hidden',
+    ...shadows.sm,
+  },
+  promo: {
+    minHeight: 120,
+    padding: spacing.xl,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
-    flex: 1,
+    justifyContent: 'space-between',
+    gap: spacing.lg,
   },
-  brandIcon: {
+  promoCopy: {
+    flex: 1,
+    gap: spacing.sm,
+  },
+  promoTitle: {
+    ...typography.heading,
+    color: colors.text,
+    fontSize: 22,
+  },
+  promoSubtitle: {
+    ...typography.body,
+    color: colors.textSecondary,
+    maxWidth: 280,
+  },
+  promoArrow: {
     width: 44,
     height: 44,
-    borderRadius: 12,
+    borderRadius: 22,
+    backgroundColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadows.sm,
   },
-  greeting: { ...typography.caption, color: colors.textSecondary },
-  name: { ...typography.heading, color: colors.text },
-  chips: { gap: spacing.sm, paddingVertical: spacing.xs },
-  promo: {
-    backgroundColor: colors.primary,
-    borderRadius: radius.xl,
-    padding: spacing.xxl,
-    ...shadows.md,
+  subjectGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
   },
-  promoTitle: { ...typography.heading, color: colors.white, marginBottom: spacing.sm },
-  promoSubtitle: { ...typography.body, color: colors.lavender },
+  subjectItem: {
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: 4,
+  },
+  subjectIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  subjectLabel: {
+    ...typography.caption,
+    color: colors.text,
+    fontWeight: '600',
+    fontSize: 11,
+    textAlign: 'center',
+  },
+  courseGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
 });

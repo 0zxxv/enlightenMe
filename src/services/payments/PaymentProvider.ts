@@ -7,6 +7,7 @@ export type ClientPaymentResult = {
   provider: string;
   providerRef: string;
   message?: string;
+  stubConfirmAvailable?: boolean;
 };
 
 export interface PaymentProvider {
@@ -14,13 +15,14 @@ export interface PaymentProvider {
 }
 
 class StubPaymentProvider implements PaymentProvider {
-  async pay(bookingId: string, method: PaymentMethod): Promise<ClientPaymentResult> {
+  async pay(bookingId: string, _method: PaymentMethod): Promise<ClientPaymentResult> {
     const result = await createPaymentIntent(bookingId);
     return {
       status: 'pending',
-      provider: result.intent.provider ?? 'stub',
-      providerRef: result.intent.providerRef,
-      message: `Payment initiated via ${method}. Awaiting provider confirmation.`,
+      provider: result.payment.provider ?? 'stub',
+      providerRef: result.payment.providerRef ?? `stub_${bookingId}`,
+      message: result.intent.message,
+      stubConfirmAvailable: result.intent.stubConfirmAvailable,
     };
   }
 }

@@ -43,6 +43,7 @@ enum CourseFormat {
 enum CourseStatus {
   Draft
   Published
+  Paused
   Archived
 }
 

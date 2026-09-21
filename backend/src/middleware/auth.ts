@@ -19,6 +19,20 @@ export function requireAuth(req: AuthedRequest, _res: Response, next: NextFuncti
   }
 }
 
+/** Attaches user when a valid Bearer token is present; otherwise continues anonymously. */
+export function optionalAuth(req: AuthedRequest, _res: Response, next: NextFunction) {
+  const header = req.headers.authorization;
+  if (!header?.startsWith('Bearer ')) {
+    return next();
+  }
+  try {
+    req.user = verifyAccessToken(header.slice(7));
+  } catch {
+    // Ignore invalid tokens for public routes.
+  }
+  return next();
+}
+
 export function requireRoles(...roles: Role[]) {
   return (req: AuthedRequest, _res: Response, next: NextFunction) => {
     if (!req.user) {

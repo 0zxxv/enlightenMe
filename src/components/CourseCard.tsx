@@ -1,56 +1,105 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Badge } from '@/components/Badge';
-import { PriceDisplay } from '@/components/PriceDisplay';
-import { Rating } from '@/components/Rating';
+import React, { useMemo } from 'react';
+import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { Avatar } from '@/components/Avatar';
+import { useAddFavorite, useFavorites, useRemoveFavorite } from '@/features/favorites/hooks';
+import { useAuth } from '@/features/auth/useAuth';
 import { useTranslation } from '@/i18n';
 import { colors, radius, shadows, spacing, typography } from '@/theme';
 import type { Course } from '@/types/models';
-import { courseTitle, fullName } from '@/utils/format';
+import { courseTitle, formatPrice, fullName } from '@/utils/format';
 
 type Props = {
   course: Course;
+  showFavorite?: boolean;
+  /** Compact marketplace tile matching the student home reference. */
+  variant?: 'default' | 'featured';
+  style?: ViewStyle;
 };
 
-export function CourseCard({ course }: Props) {
+const PLACEHOLDER = require('../../assets/images/dars_icon.png');
+
+export function CourseCard({
+  course,
+  showFavorite = true,
+  variant = 'default',
+  style,
+}: Props) {
   const router = useRouter();
   const { t, language } = useTranslation();
+  const { isAuthenticated } = useAuth();
+  const favoritesQuery = useFavorites();
+  const addFavorite = useAddFavorite();
+  const removeFavorite = useRemoveFavorite();
+
   const tutorName = fullName(course.tutor?.firstName, course.tutor?.lastName);
+  const favorite = useMemo(
+    () => favoritesQuery.data?.find((f) => f.courseId === course.id),
+    [favoritesQuery.data, course.id],
+  );
+  const isFav = Boolean(favorite);
+  const featured = variant === 'featured';
+
+  const onToggleFavorite = () => {
+    if (!isAuthenticated) {
+      router.push('/(auth)/login');
+      return;
+    }
+    if (isFav && favorite) {
+      removeFavorite.mutate(favorite.id);
+    } else {
+      addFavorite.mutate({ courseId: course.id });
+    }
+  };
 
   return (
     <Pressable
-      style={styles.card}
+      style={[styles.card, featured && styles.cardFeatured, style]}
       onPress={() => router.push(`/course/${course.id}`)}
     >
-      <Image
-        source={{
-          uri:
-            course.imageUrl ||
-            'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800&q=80',
-        }}
-        style={styles.image}
-        contentFit="cover"
-      />
-      <View style={styles.body}>
-        <View style={styles.row}>
-          <Badge label={course.format} tone="neutral" />
-          {course.tutor?.tutorProfile?.verificationStatus === 'Verified' ? (
-            <Badge label={t('common.verified')} tone="success" />
-          ) : null}
-        </View>
-        <Text style={styles.title} numberOfLines={2}>
+      <View style={[styles.imageWrap, featured && styles.imageWrapFeatured]}>
+        <Image
+          source={course.imageUrl ? { uri: course.imageUrl } : PLACEHOLDER}
+          style={styles.image}
+          contentFit={course.imageUrl ? 'cover' : 'contain'}
+        />
+        {showFavorite ? (
+          <Pressable style={styles.heart} onPress={onToggleFavorite} hitSlop={8}>
+            <Ionicons
+              name={isFav ? 'heart' : 'heart-outline'}
+              size={18}
+              color={isFav ? colors.error : colors.primary}
+            />
+          </Pressable>
+        ) : null}
+      </View>
+      <View style={[styles.body, featured && styles.bodyFeatured]}>
+        <Text style={[styles.title, featured && styles.titleFeatured]} numberOfLines={2}>
           {courseTitle(course, language)}
         </Text>
         {tutorName ? (
-          <Text style={styles.meta} numberOfLines={1}>
-            {t('course.by')} {tutorName}
-          </Text>
+          <View style={styles.tutorRow}>
+            <Avatar name={tutorName} size={featured ? 22 : 28} />
+            <Text style={styles.meta} numberOfLines={1}>
+              {tutorName}
+            </Text>
+          </View>
         ) : null}
         <View style={styles.footer}>
-          <Rating value={Number(course.ratingAvg || 0)} count={course.ratingCount} />
-          <PriceDisplay amount={course.priceDecimal} currency={course.currency} />
+          <View style={styles.ratingRow}>
+            <Ionicons name="star" size={14} color={colors.star} />
+            <Text style={styles.ratingText}>
+              {Number(course.ratingAvg || 0).toFixed(1)}
+              {course.ratingCount ? (
+                <Text style={styles.ratingCount}> ({course.ratingCount})</Text>
+              ) : null}
+            </Text>
+          </View>
+          <Text style={styles.price}>
+            {formatPrice(course.priceDecimal, course.currency ?? t('common.currency'))}
+          </Text>
         </View>
       </View>
     </Pressable>
@@ -60,37 +109,90 @@ export function CourseCard({ course }: Props) {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.white,
-    borderRadius: radius.lg,
+    borderRadius: radius.xl,
     overflow: 'hidden',
     ...shadows.sm,
     marginBottom: spacing.lg,
   },
+  cardFeatured: {
+    marginBottom: 0,
+    flex: 1,
+  },
+  imageWrap: {
+    position: 'relative',
+    backgroundColor: colors.lavenderSoft,
+  },
+  imageWrapFeatured: {
+    borderTopLeftRadius: radius.xl,
+    borderTopRightRadius: radius.xl,
+  },
   image: {
     width: '100%',
-    height: 140,
+    height: 132,
     backgroundColor: colors.beige,
+  },
+  heart: {
+    position: 'absolute',
+    top: spacing.sm,
+    right: spacing.sm,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadows.sm,
   },
   body: {
     padding: spacing.lg,
     gap: spacing.sm,
   },
-  row: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    flexWrap: 'wrap',
+  bodyFeatured: {
+    padding: spacing.md,
+    gap: spacing.xs,
   },
   title: {
     ...typography.subheading,
     color: colors.text,
   },
+  titleFeatured: {
+    fontSize: 14,
+    lineHeight: 18,
+  },
+  tutorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
   meta: {
     ...typography.caption,
     color: colors.textSecondary,
+    flex: 1,
   },
   footer: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'center',
     marginTop: spacing.xs,
+  },
+  ratingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  ratingText: {
+    ...typography.caption,
+    color: colors.text,
+    fontWeight: '600',
+  },
+  ratingCount: {
+    color: colors.textMuted,
+    fontWeight: '500',
+  },
+  price: {
+    ...typography.caption,
+    color: colors.text,
+    fontWeight: '800',
+    fontSize: 13,
   },
 });

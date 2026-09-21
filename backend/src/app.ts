@@ -8,6 +8,7 @@ import { errorHandler } from './lib/errors.js';
 import { adminRouter } from './modules/admin/admin.routes.js';
 import { authRouter } from './modules/auth/auth.routes.js';
 import { bookingsRouter } from './modules/bookings/bookings.routes.js';
+import { categoriesRouter } from './modules/categories/categories.routes.js';
 import { coursesRouter } from './modules/courses/courses.routes.js';
 import { favoritesRouter } from './modules/favorites/favorites.routes.js';
 import { healthRouter } from './modules/health/health.routes.js';
@@ -46,6 +47,7 @@ export function createApp() {
   const api = express.Router();
   api.use('/health', healthRouter);
   api.use('/auth', authRouter);
+  api.use('/categories', categoriesRouter);
   api.use('/courses', coursesRouter);
   api.use('/tutors', tutorsRouter);
   api.use('/institutes', institutesRouter);

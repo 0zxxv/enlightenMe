@@ -1,19 +1,31 @@
 import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
-import { colors, radius, spacing, typography } from '@/theme';
+import { Pressable, StyleSheet, TextInput, View, type ViewStyle } from 'react-native';
+import { colors, radius, shadows, spacing, typography } from '@/theme';
 
 type Props = {
   value: string;
   onChangeText: (text: string) => void;
   placeholder?: string;
   onSubmit?: () => void;
+  /** Optional trailing action (e.g. scan / filters). */
+  trailingIcon?: keyof typeof Ionicons.glyphMap;
+  onTrailingPress?: () => void;
+  style?: ViewStyle;
 };
 
-export function SearchBar({ value, onChangeText, placeholder, onSubmit }: Props) {
+export function SearchBar({
+  value,
+  onChangeText,
+  placeholder,
+  onSubmit,
+  trailingIcon = 'scan-outline',
+  onTrailingPress,
+  style,
+}: Props) {
   return (
-    <View style={styles.wrap}>
-      <Ionicons name="search" size={18} color={colors.textMuted} />
+    <View style={[styles.wrap, style]}>
+      <Ionicons name="search" size={20} color={colors.textMuted} />
       <TextInput
         value={value}
         onChangeText={onChangeText}
@@ -24,8 +36,12 @@ export function SearchBar({ value, onChangeText, placeholder, onSubmit }: Props)
         onSubmitEditing={onSubmit}
       />
       {value.length > 0 ? (
-        <Pressable onPress={() => onChangeText('')}>
+        <Pressable onPress={() => onChangeText('')} hitSlop={8}>
           <Ionicons name="close-circle" size={18} color={colors.textMuted} />
+        </Pressable>
+      ) : trailingIcon ? (
+        <Pressable onPress={onTrailingPress ?? onSubmit} hitSlop={8}>
+          <Ionicons name={trailingIcon} size={20} color={colors.textMuted} />
         </Pressable>
       ) : null}
     </View>
@@ -38,11 +54,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
     backgroundColor: colors.white,
-    borderRadius: radius.lg,
+    borderRadius: radius.xl,
     borderWidth: 1,
     borderColor: colors.border,
     paddingHorizontal: spacing.lg,
-    minHeight: 48,
+    minHeight: 52,
+    ...shadows.sm,
   },
   input: {
     ...typography.body,

@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
-import React, { useEffect, useLayoutEffect, useState } from 'react';
+import React, { useLayoutEffect, useMemo, useState } from 'react';
 import {
   Pressable,
   RefreshControl,
@@ -16,22 +16,36 @@ import { ErrorState } from '@/components/ErrorState';
 import { LoadingState } from '@/components/LoadingState';
 import { PriceDisplay } from '@/components/PriceDisplay';
 import { Rating } from '@/components/Rating';
+import { useAddFavorite, useFavorites, useRemoveFavorite } from '@/features/favorites/hooks';
+import { useAuth } from '@/features/auth/useAuth';
 import { useCourse } from '@/features/courses/hooks';
 import { useRefresh } from '@/hooks/useRefresh';
 import { useTranslation } from '@/i18n';
-import { colors, radius, spacing, typography } from '@/theme';
+import { colors, radius, shadows, spacing, typography } from '@/theme';
 import { courseTitle, fullName } from '@/utils/format';
 
 type DetailTab = 'about' | 'curriculum' | 'reviews';
+
+const PLACEHOLDER = require('../../assets/images/dars_icon.png');
 
 export default function CourseDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t, language } = useTranslation();
   const router = useRouter();
   const navigation = useNavigation();
+  const { isAuthenticated } = useAuth();
   const [tab, setTab] = useState<DetailTab>('about');
   const courseQuery = useCourse(id);
   const course = courseQuery.data;
+  const favoritesQuery = useFavorites();
+  const addFavorite = useAddFavorite();
+  const removeFavorite = useRemoveFavorite();
+
+  const favorite = useMemo(
+    () => favoritesQuery.data?.find((f) => f.courseId === id),
+    [favoritesQuery.data, id],
+  );
+
   const { refreshing, onRefresh } = useRefresh(async () => {
     await courseQuery.refetch();
   });
@@ -44,10 +58,6 @@ export default function CourseDetailsScreen() {
     });
   }, [navigation, course, language]);
 
-  useEffect(() => {
-    // Keep query keyed
-  }, [id]);
-
   if (courseQuery.isLoading) return <LoadingState />;
   if (courseQuery.isError || !course) {
     return <ErrorState onRetry={() => courseQuery.refetch()} />;
@@ -55,9 +65,16 @@ export default function CourseDetailsScreen() {
 
   const tutorName = fullName(course.tutor?.firstName, course.tutor?.lastName);
   const description =
-    language === 'ar' && course.descriptionAr
-      ? course.descriptionAr
-      : course.description;
+    language === 'ar' && course.descriptionAr ? course.descriptionAr : course.description;
+
+  const onToggleFavorite = () => {
+    if (!isAuthenticated) {
+      router.push('/(auth)/login');
+      return;
+    }
+    if (favorite) removeFavorite.mutate(favorite.id);
+    else addFavorite.mutate({ courseId: course.id });
+  };
 
   return (
     <View style={styles.root}>
@@ -66,13 +83,9 @@ export default function CourseDetailsScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         <Image
-          source={{
-            uri:
-              course.imageUrl ||
-              'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1200&q=80',
-          }}
+          source={course.imageUrl ? { uri: course.imageUrl } : PLACEHOLDER}
           style={styles.hero}
-          contentFit="cover"
+          contentFit={course.imageUrl ? 'cover' : 'contain'}
         />
         <View style={styles.body}>
           <View style={styles.badges}>
@@ -92,13 +105,35 @@ export default function CourseDetailsScreen() {
           ) : null}
           <View style={styles.metaRow}>
             <Rating value={Number(course.ratingAvg || 0)} count={course.ratingCount} />
-            <PriceDisplay amount={course.priceDecimal} currency={course.currency} />
+            <PriceDisplay
+              amount={course.priceDecimal}
+              currency={course.currency}
+              sessionCount={course.sessionCount}
+            />
           </View>
-          <Text style={styles.metaLine}>
-            {course.level ? `${course.level} · ` : ''}
-            {course.sessionCount} sessions · {course.format}
-            {course.location ? ` · ${course.location}` : ''}
-          </Text>
+
+          <View style={styles.stats}>
+            {course.level ? (
+              <View style={styles.stat}>
+                <Text style={styles.statLabel}>{t('course.level')}</Text>
+                <Text style={styles.statValue}>{course.level}</Text>
+              </View>
+            ) : null}
+            <View style={styles.stat}>
+              <Text style={styles.statLabel}>{t('course.sessions')}</Text>
+              <Text style={styles.statValue}>{course.sessionCount}</Text>
+            </View>
+            <View style={styles.stat}>
+              <Text style={styles.statLabel}>{t('course.capacity')}</Text>
+              <Text style={styles.statValue}>{course.capacity}</Text>
+            </View>
+            {course.durationMinutes ? (
+              <View style={styles.stat}>
+                <Text style={styles.statLabel}>{t('course.duration')}</Text>
+                <Text style={styles.statValue}>{course.durationMinutes}m</Text>
+              </View>
+            ) : null}
+          </View>
 
           <View style={styles.tabs}>
             {(['about', 'curriculum', 'reviews'] as DetailTab[]).map((key) => (
@@ -149,7 +184,17 @@ export default function CourseDetailsScreen() {
         </View>
       </ScrollView>
       <View style={styles.cta}>
-        <Button title={t('common.bookNow')} onPress={() => router.push(`/booking/${course.id}`)} />
+        <Button
+          title={favorite ? t('course.unfavorite') : t('course.favorite')}
+          variant="ghost"
+          onPress={onToggleFavorite}
+          style={{ flex: 1 }}
+        />
+        <Button
+          title={t('common.bookNow')}
+          onPress={() => router.push(`/booking/${course.id}`)}
+          style={{ flex: 2 }}
+        />
       </View>
     </View>
   );
@@ -158,7 +203,7 @@ export default function CourseDetailsScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   content: { paddingBottom: spacing.massive },
-  hero: { width: '100%', height: 220, backgroundColor: colors.beige },
+  hero: { width: '100%', height: 220, backgroundColor: colors.lavenderSoft },
   body: { padding: spacing.xl, gap: spacing.md },
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   title: { ...typography.heading, color: colors.text },
@@ -166,9 +211,24 @@ const styles = StyleSheet.create({
   metaRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
   },
-  metaLine: { ...typography.caption, color: colors.textSecondary },
+  stats: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  stat: {
+    backgroundColor: colors.white,
+    borderRadius: radius.lg,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    ...shadows.sm,
+    minWidth: '45%',
+    flexGrow: 1,
+  },
+  statLabel: { ...typography.caption, color: colors.textMuted },
+  statValue: { ...typography.body, color: colors.text, fontWeight: '700', marginTop: 2 },
   tabs: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
   tab: {
     paddingHorizontal: spacing.md,
@@ -189,9 +249,12 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     gap: spacing.sm,
     marginBottom: spacing.md,
+    ...shadows.sm,
   },
   reviewer: { ...typography.caption, color: colors.textMuted },
   cta: {
+    flexDirection: 'row',
+    gap: spacing.md,
     padding: spacing.xl,
     borderTopWidth: 1,
     borderTopColor: colors.border,

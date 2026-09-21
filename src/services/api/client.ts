@@ -84,11 +84,12 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     requestHeaders['Content-Type'] = 'application/json';
   }
 
-  if (auth) {
-    const token = await getAccessToken();
-    if (token) {
-      requestHeaders.Authorization = `Bearer ${token}`;
-    }
+  // Attach token whenever available (public routes still resolve owner drafts).
+  const token = await getAccessToken();
+  if (token) {
+    requestHeaders.Authorization = `Bearer ${token}`;
+  } else if (auth) {
+    // auth required but no token — request proceeds; server returns 401
   }
 
   const response = await fetch(`${env.apiUrl}${path}`, {

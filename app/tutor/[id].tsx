@@ -1,4 +1,4 @@
-import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
+import { useLocalSearchParams, useNavigation } from 'expo-router';
 import React, { useLayoutEffect } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Avatar } from '@/components/Avatar';
@@ -19,7 +19,6 @@ export default function TutorProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t } = useTranslation();
   const navigation = useNavigation();
-  const router = useRouter();
   const tutorQuery = useTutor(id);
   const tutor = tutorQuery.data;
   const { refreshing, onRefresh } = useRefresh(async () => {

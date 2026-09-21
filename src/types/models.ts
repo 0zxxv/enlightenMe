@@ -2,7 +2,7 @@ export type Role = 'Student' | 'Parent' | 'Tutor' | 'InstituteAdmin' | 'Admin';
 export type LanguageCode = 'en' | 'ar';
 export type CourseType = 'School' | 'University' | 'Skills';
 export type CourseFormat = 'Online' | 'InPerson' | 'Hybrid';
-export type CourseStatus = 'Draft' | 'Published' | 'Archived';
+export type CourseStatus = 'Draft' | 'Published' | 'Paused' | 'Archived';
 export type BookingStatus = 'Pending' | 'Confirmed' | 'Completed' | 'Cancelled' | 'Refunded';
 export type PaymentStatus =
   | 'Pending'

@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { paramId } from '../../lib/params.js';
 import { requireAuth, type AuthedRequest } from '../../middleware/auth.js';
 import { validate } from '../../middleware/validate.js';
 import { createPaymentSchema } from './payments.service.js';
@@ -20,3 +21,15 @@ paymentsRouter.post(
     }
   },
 );
+
+paymentsRouter.post('/:bookingId/confirm-stub', async (req: AuthedRequest, res, next) => {
+  try {
+    const data = await paymentsService.confirmStubPayment(
+      req.user!.sub,
+      paramId(req.params.bookingId),
+    );
+    res.json({ data });
+  } catch (err) {
+    next(err);
+  }
+});

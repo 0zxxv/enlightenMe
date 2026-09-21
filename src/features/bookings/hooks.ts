@@ -14,6 +14,19 @@ export function useCreateBooking() {
     mutationFn: bookingsApi.createBooking,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['bookings'] });
+      qc.invalidateQueries({ queryKey: ['courses'] });
+      qc.invalidateQueries({ queryKey: ['tutor'] });
+    },
+  });
+}
+
+export function useCancelBooking() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: bookingsApi.cancelBooking,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['bookings'] });
+      qc.invalidateQueries({ queryKey: ['tutor'] });
     },
   });
 }
