@@ -7,11 +7,14 @@ import type { ReactNode } from 'react';
 // do not have access to the DOM or browser APIs.
 export default function Root({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" style={{ height: '100%' }}>
       <head>
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
-        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover"
+        />
 
         {/*
           Disable body scrolling on web. This makes ScrollView components work closer to how they do on native.
@@ -23,12 +26,25 @@ export default function Root({ children }: { children: ReactNode }) {
         <style dangerouslySetInnerHTML={{ __html: responsiveBackground }} />
         {/* Add any additional <head> elements that you want globally available on web... */}
       </head>
-      <body>{children}</body>
+      <body style={{ height: '100%' }}>{children}</body>
     </html>
   );
 }
 
 const responsiveBackground = `
+html, body, #root {
+  height: 100%;
+  min-height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
 body {
   background-color: #F7F3EE;
-}`;
+  overflow: hidden;
+}
+#root {
+  display: flex;
+  flex-direction: column;
+}
+`;

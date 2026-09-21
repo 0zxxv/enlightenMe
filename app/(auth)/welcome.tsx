@@ -1,35 +1,53 @@
+import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
+import React from 'react';
+import { Platform, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/Button';
 import { useLayout } from '@/hooks/useLayout';
 import { useTranslation } from '@/i18n';
 import { colors, spacing, typography } from '@/theme';
-import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
-import { StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 const BEIGE = '#F7F3EE';
+/** Intrinsic size of assets/images/bg.png */
+const PHONE_ART_ASPECT = 881 / 1499;
 
 export default function WelcomeScreen() {
   const router = useRouter();
   const { t } = useTranslation();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const { isDesktop, isTablet, contentPadding } = useLayout();
 
   const isLarge = isTablet || isDesktop;
   const panelMaxWidth = isDesktop ? 560 : isTablet ? 520 : undefined;
 
   const artSource = isDesktop
-    ? require('../../assets/images/bg3.png')
+    ? require('../../assets/images/bg4.png')
     : isTablet
       ? require('../../assets/images/bg3.png')
       : require('../../assets/images/bg.png');
 
+  // Full page width; height follows image ratio (capped so it stays behind the CTAs).
+  const artWidth = windowWidth;
+  const naturalArtHeight = isLarge ? windowHeight * 0.72 : artWidth / PHONE_ART_ASPECT;
+  const artHeight = Math.min(naturalArtHeight, windowHeight * 0.68);
+
   return (
     <View style={styles.root}>
-      <View style={styles.artLayer} pointerEvents="none">
+      <View
+        style={[
+          styles.artLayer,
+          {
+            width: artWidth,
+            height: artHeight,
+          },
+        ]}
+        pointerEvents="none"
+      >
         <Image
           source={artSource}
           style={styles.art}
-          contentFit="contain"
+          contentFit={isLarge ? 'contain' : 'cover'}
           contentPosition="bottom"
           accessibilityLabel={t('brand.quote')}
         />
@@ -42,6 +60,7 @@ export default function WelcomeScreen() {
             isLarge && styles.topPanelLarge,
             {
               maxWidth: panelMaxWidth ?? '100%',
+              width: '100%',
               paddingHorizontal: contentPadding,
             },
           ]}
@@ -88,15 +107,22 @@ export default function WelcomeScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
+    width: '100%',
     backgroundColor: BEIGE,
+    overflow: 'hidden',
+    ...Platform.select({
+      web: {
+        minHeight: '100vh' as unknown as number,
+        height: '100%' as unknown as number,
+      },
+      default: {},
+    }),
   },
   artLayer: {
     position: 'absolute',
     left: 0,
     right: 0,
     bottom: 0,
-    width: '100%',
-    height: '70%',
     zIndex: 0,
   },
   art: {
@@ -106,6 +132,7 @@ const styles = StyleSheet.create({
   foreground: {
     flex: 1,
     zIndex: 1,
+    width: '100%',
   },
   topPanel: {
     width: '100%',
@@ -164,6 +191,7 @@ const styles = StyleSheet.create({
   },
   actions: {
     gap: spacing.md,
+    width: '100%',
   },
   actionsLarge: {
     gap: spacing.lg,

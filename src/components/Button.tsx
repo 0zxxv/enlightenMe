@@ -101,12 +101,12 @@ const styles = StyleSheet.create({
     borderColor: colors.borderStrong,
   },
   glass: {
-    backgroundColor: 'rgba(255, 252, 248, 0.18)',
+    backgroundColor: 'rgba(255, 252, 248, 0.12)',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.55)',
+    borderColor: 'rgba(255, 255, 255, 0.45)',
   },
   glassFallback: {
-    backgroundColor: 'rgba(255, 252, 248, 0.22)',
+    backgroundColor: 'rgba(255, 252, 248, 0.14)',
   } as ViewStyle,
   danger: {
     backgroundColor: colors.errorSoft,
