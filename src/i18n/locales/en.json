@@ -64,7 +64,13 @@
     "passwordMin": "Password must be at least 8 characters",
     "nameRequired": "This field is required",
     "devMode": "Dev mode",
-    "devModeSubtitle": "Skip login and open the app as a seeded demo user."
+    "devModeTitle": "Dars Dev Mode",
+    "devModeSubtitle": "Enter seeded experiences without typing credentials. Safe for manual QA and automated browser tests.",
+    "devModeRoles": "Role experiences",
+    "devModeQuickTests": "Quick tests",
+    "devModeQuickTestsHint": "Signs in as the demo student, then opens that flow.",
+    "devModeNoCourses": "No published courses found to open booking.",
+    "devModeFootnote": "Uses realistic seeded data on the live API. Ideal target route for Codex/Cursor browser end-to-end tests: /dev-mode"
   },
   "home": {
     "goodMorning": "Good morning",
