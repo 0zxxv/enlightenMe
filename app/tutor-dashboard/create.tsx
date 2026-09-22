@@ -18,10 +18,11 @@ import {
 } from '@/services/api/courses';
 import { colors, radius, shadows, spacing, typography } from '@/theme';
 import { ApiError } from '@/types/api';
-import type { CourseFormat, CourseType } from '@/types/models';
+import type { CourseFormat, ServiceType } from '@/types/models';
+import { SERVICE_TYPE_SINGULAR_KEYS, normalizeServiceType } from '@/domain/marketplace';
 import { formatDate, formatTime } from '@/utils/format';
 
-type Step = 'basics' | 'category' | 'details' | 'schedule' | 'review';
+type Step = 'serviceType' | 'basics' | 'category' | 'details' | 'schedule' | 'review';
 
 type DraftSession = {
   key: string;
@@ -30,17 +31,17 @@ type DraftSession = {
   existingId?: string;
 };
 
-const STEPS: Step[] = ['basics', 'category', 'details', 'schedule', 'review'];
+const STEPS: Step[] = ['serviceType', 'basics', 'category', 'details', 'schedule', 'review'];
 
-function typeFromParent(parent: CategoryNode | undefined): CourseType {
+function typeFromParent(parent: CategoryNode | undefined): ServiceType {
   const slug = (parent?.slug ?? '').toLowerCase();
-  if (slug.includes('school')) return 'School';
-  if (slug.includes('university')) return 'University';
-  if (slug.includes('skill')) return 'Skills';
+  if (slug.includes('school')) return 'SchoolCourse';
+  if (slug.includes('university')) return 'UniversityCourse';
+  if (slug.includes('skill')) return 'TrainingSkill';
   const name = (parent?.nameEn ?? '').toLowerCase();
-  if (name.includes('school')) return 'School';
-  if (name.includes('university')) return 'University';
-  return 'Skills';
+  if (name.includes('school')) return 'SchoolCourse';
+  if (name.includes('university')) return 'UniversityCourse';
+  return 'TrainingSkill';
 }
 
 function categoryLabel(node: CategoryNode, language: string) {
@@ -74,13 +75,18 @@ export default function CreateCourseScreen() {
   const courseId = typeof courseIdParam === 'string' ? courseIdParam : undefined;
   const isEdit = Boolean(courseId);
 
-  const [step, setStep] = useState<Step>('basics');
+  const [step, setStep] = useState<Step>('serviceType');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [parentId, setParentId] = useState<string>();
   const [categoryId, setCategoryId] = useState<string>();
-  const [type, setType] = useState<CourseType>('Skills');
+  const [serviceType, setServiceType] = useState<ServiceType>('TrainingSkill');
   const [level, setLevel] = useState('');
+  const [grade, setGrade] = useState('');
+  const [stage, setStage] = useState('');
+  const [courseCode, setCourseCode] = useState('');
+  const [major, setMajor] = useState('');
+  const [skillCategory, setSkillCategory] = useState('');
   const [format, setFormat] = useState<CourseFormat>('Online');
   const [capacity, setCapacity] = useState('10');
   const [sessionCount, setSessionCount] = useState('1');
@@ -113,8 +119,15 @@ export default function CreateCourseScreen() {
     const course = courseQuery.data;
     setTitle(course.title);
     setDescription(course.description);
-    setType(course.type);
+    setServiceType(
+      normalizeServiceType(String(course.serviceType ?? course.type ?? '')) ?? 'TrainingSkill',
+    );
     setLevel(course.level ?? '');
+    setGrade(course.grade ?? '');
+    setStage(course.stage ?? '');
+    setCourseCode(course.courseCode ?? '');
+    setMajor(course.major ?? '');
+    setSkillCategory(course.skillCategory ?? '');
     setFormat(course.format);
     setCapacity(String(course.capacity));
     setSessionCount(String(course.sessionCount));
@@ -158,6 +171,7 @@ export default function CreateCourseScreen() {
   const stepIndex = STEPS.indexOf(step);
   const stepLabel = useMemo(() => {
     const map: Record<Step, string> = {
+      serviceType: t('marketplace.whatService'),
       basics: t('tutorDashboard.stepBasics'),
       category: t('tutorDashboard.stepCategory'),
       details: t('tutorDashboard.stepDetails'),
@@ -168,6 +182,7 @@ export default function CreateCourseScreen() {
   }, [step, t]);
 
   const canContinue = () => {
+    if (step === 'serviceType') return Boolean(serviceType);
     if (step === 'basics') return title.trim().length > 0 && description.trim().length > 0;
     if (step === 'category') return Boolean(categoryId);
     if (step === 'details') {
@@ -183,7 +198,8 @@ export default function CreateCourseScreen() {
 
   const onSelectParent = (parent: CategoryNode) => {
     setParentId(parent.id);
-    setType(typeFromParent(parent));
+    // Prefer explicit serviceType chosen earlier; only infer if needed.
+    if (!serviceType) setServiceType(typeFromParent(parent));
     if ((parent.children?.length ?? 0) === 0) {
       setCategoryId(parent.id);
     } else {
@@ -218,8 +234,13 @@ export default function CreateCourseScreen() {
     title: title.trim(),
     description: description.trim(),
     categoryId: categoryId!,
-    type,
+    serviceType,
     level: level.trim() || undefined,
+    grade: serviceType === 'SchoolCourse' ? grade.trim() || undefined : undefined,
+    stage: serviceType === 'SchoolCourse' ? stage.trim() || undefined : undefined,
+    courseCode: serviceType === 'UniversityCourse' ? courseCode.trim() || undefined : undefined,
+    major: serviceType === 'UniversityCourse' ? major.trim() || undefined : undefined,
+    skillCategory: serviceType === 'TrainingSkill' ? skillCategory.trim() || undefined : undefined,
     format,
     capacity: Number(capacity),
     sessionCount: Number(sessionCount),
@@ -345,6 +366,28 @@ export default function CreateCourseScreen() {
           </View>
         </View>
 
+        {step === 'serviceType' ? (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>{t('marketplace.whatService')}</Text>
+            <View style={styles.chipWrap}>
+              {(
+                [
+                  'SchoolCourse',
+                  'UniversityCourse',
+                  'TrainingSkill',
+                ] as ServiceType[]
+              ).map((value) => (
+                <Chip
+                  key={value}
+                  label={t(SERVICE_TYPE_SINGULAR_KEYS[value])}
+                  selected={serviceType === value}
+                  onPress={() => setServiceType(value)}
+                />
+              ))}
+            </View>
+          </View>
+        ) : null}
+
         {step === 'basics' ? (
           <View style={styles.section}>
             <TextInput
@@ -391,13 +434,53 @@ export default function CreateCourseScreen() {
               </>
             ) : null}
             <Text style={styles.hint}>
-              {t('explore.type')}: {type}
+              {t(SERVICE_TYPE_SINGULAR_KEYS[serviceType])}
             </Text>
           </View>
         ) : null}
 
         {step === 'details' ? (
           <View style={styles.section}>
+            {serviceType === 'SchoolCourse' ? (
+              <>
+                <TextInput
+                  label="Stage"
+                  value={stage}
+                  onChangeText={setStage}
+                  placeholder="Primary / Intermediate / Secondary"
+                />
+                <TextInput
+                  label="Grade"
+                  value={grade}
+                  onChangeText={setGrade}
+                  placeholder="10 / 11 / 12"
+                />
+              </>
+            ) : null}
+            {serviceType === 'UniversityCourse' ? (
+              <>
+                <TextInput
+                  label="Course code"
+                  value={courseCode}
+                  onChangeText={setCourseCode}
+                  placeholder="ITCS347"
+                  autoCapitalize="characters"
+                />
+                <TextInput
+                  label="Major / program"
+                  value={major}
+                  onChangeText={setMajor}
+                />
+              </>
+            ) : null}
+            {serviceType === 'TrainingSkill' ? (
+              <TextInput
+                label="Skill category"
+                value={skillCategory}
+                onChangeText={setSkillCategory}
+                placeholder="Design / Programming / Languages"
+              />
+            ) : null}
             <TextInput
               label={t('tutorDashboard.level')}
               value={level}
@@ -496,7 +579,8 @@ export default function CreateCourseScreen() {
             <Text style={styles.reviewTitle}>{title}</Text>
             <Text style={styles.reviewBody}>{description}</Text>
             <Text style={styles.hint}>
-              {type} · {format} · {t('tutorDashboard.capacity')} {capacity}
+              {t(SERVICE_TYPE_SINGULAR_KEYS[serviceType])} · {format} · {t('tutorDashboard.capacity')}{' '}
+              {capacity}
             </Text>
             <Text style={styles.hint}>
               {t('tutorDashboard.sessionCount')}: {sessionCount} · {t('tutorDashboard.price')}:{' '}

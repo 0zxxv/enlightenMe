@@ -18,7 +18,7 @@ import { IconButton } from '@/components/IconButton';
 import { LoadingState } from '@/components/LoadingState';
 import { SearchBar } from '@/components/SearchBar';
 import { SectionHeader } from '@/components/SectionHeader';
-import { CATEGORY_CHIPS, POPULAR_SUBJECTS } from '@/constants/catalog';
+import { POPULAR_SUBJECTS, SERVICE_CATEGORY_CHIPS } from '@/constants/catalog';
 import { useAuth } from '@/features/auth/useAuth';
 import { useCourses } from '@/features/courses/hooks';
 import { useLayout } from '@/hooks/useLayout';
@@ -95,19 +95,16 @@ export default function HomeScreen() {
           onTrailingPress={onSearch}
         />
 
+        <SectionHeader title={t('home.whatToLearn')} />
         <View style={[styles.categoryRow, { flexDirection: rowDir }]}>
-          {CATEGORY_CHIPS.map((chip) => (
+          {SERVICE_CATEGORY_CHIPS.map((chip) => (
             <Pressable
               key={chip.id}
               style={styles.categoryItem}
               onPress={() => {
-                if (chip.id === 'institutes') {
-                  router.push({ pathname: '/(tabs)/explore', params: { tab: 'institutes' } });
-                  return;
-                }
                 router.push({
                   pathname: '/(tabs)/explore',
-                  params: { tab: 'courses', type: chip.id },
+                  params: { serviceType: chip.id, result: 'services' },
                 });
               }}
             >

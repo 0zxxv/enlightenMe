@@ -1,4 +1,4 @@
-import { VerificationStatus, type Prisma } from '@prisma/client';
+import { ProviderType, VerificationStatus, type Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { AppError } from '../../lib/errors.js';
 import { prisma } from '../../lib/prisma.js';
@@ -7,6 +7,7 @@ export const listTutorsQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   pageSize: z.coerce.number().int().positive().max(100).default(20),
   q: z.string().optional(),
+  providerType: z.nativeEnum(ProviderType).optional(),
   minRating: z.coerce.number().min(0).max(5).optional(),
   verifiedOnly: z
     .enum(['true', 'false'])
@@ -18,6 +19,9 @@ export async function listTutors(query: z.infer<typeof listTutorsQuerySchema>) {
   const where: Prisma.TutorProfileWhereInput = {};
   if (query.verifiedOnly) {
     where.verificationStatus = VerificationStatus.Verified;
+  }
+  if (query.providerType) {
+    where.providerType = query.providerType;
   }
   if (query.minRating !== undefined) {
     where.ratingAvg = { gte: query.minRating };
@@ -53,7 +57,24 @@ export async function listTutors(query: z.infer<typeof listTutorsQuerySchema>) {
   ]);
 
   return {
-    data: items,
+    data: items.map((profile) => ({
+      id: profile.user.id,
+      firstName: profile.user.firstName,
+      lastName: profile.user.lastName,
+      email: profile.user.email,
+      tutorProfile: {
+        id: profile.id,
+        userId: profile.userId,
+        bio: profile.bio ?? '',
+        expertise: profile.expertise,
+        providerType: profile.providerType,
+        verificationStatus: profile.verificationStatus,
+        ratingAvg: profile.ratingAvg,
+        ratingCount: profile.ratingCount,
+        studentCount: profile.studentCount,
+        courseCount: profile.courseCount,
+      },
+    })),
     meta: { page: query.page, pageSize: query.pageSize, total },
   };
 }

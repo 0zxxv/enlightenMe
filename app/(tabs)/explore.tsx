@@ -19,7 +19,14 @@ import { LoadingState } from '@/components/LoadingState';
 import { SearchBar } from '@/components/SearchBar';
 import { SectionHeader } from '@/components/SectionHeader';
 import { TutorCard } from '@/components/TutorCard';
-import { CATEGORY_CHIPS } from '@/constants/catalog';
+import { SERVICE_CATEGORY_CHIPS } from '@/constants/catalog';
+import {
+  PROVIDER_TYPE_LABEL_KEYS,
+  normalizeServiceType,
+  providersForService,
+  type ProviderType,
+  type ServiceType,
+} from '@/domain/marketplace';
 import { useCourses } from '@/features/courses/hooks';
 import { useInstitutes } from '@/features/institutes/hooks';
 import { useTutors } from '@/features/tutors/hooks';
@@ -27,38 +34,70 @@ import { useLayout } from '@/hooks/useLayout';
 import { useRefresh } from '@/hooks/useRefresh';
 import { useTranslation } from '@/i18n';
 import { colors, radius, spacing, typography } from '@/theme';
-import type { Course, CourseType, Institute, Tutor } from '@/types/models';
+import type { Course, Institute, Tutor } from '@/types/models';
 
-type ExploreTab = 'all' | 'courses' | 'tutors' | 'institutes';
+type ResultTab = 'services' | 'providers';
 
 export default function ExploreScreen() {
   const { t, isRTL } = useTranslation();
   const layout = useLayout();
-  const params = useLocalSearchParams<{ q?: string; tab?: string; type?: string }>();
-  const [tab, setTab] = useState<ExploreTab>((params.tab as ExploreTab) || 'courses');
+  const params = useLocalSearchParams<{
+    q?: string;
+    serviceType?: string;
+    type?: string;
+    result?: string;
+    tab?: string;
+  }>();
+
   const [query, setQuery] = useState(params.q ?? '');
-  const [courseType, setCourseType] = useState<CourseType | undefined>(() => {
-    if (!params.type) return undefined;
-    const next = (params.type.charAt(0).toUpperCase() + params.type.slice(1)) as CourseType;
-    return ['School', 'University', 'Skills'].includes(next) ? next : undefined;
+  const [serviceType, setServiceType] = useState<ServiceType | undefined>(() => {
+    const raw = params.serviceType ?? params.type;
+    return raw ? normalizeServiceType(String(raw)) ?? undefined : undefined;
+  });
+  const [providerType, setProviderType] = useState<ProviderType | 'all'>('all');
+  const [resultTab, setResultTab] = useState<ResultTab>(() => {
+    if (params.result === 'providers' || params.tab === 'tutors' || params.tab === 'institutes') {
+      return 'providers';
+    }
+    return 'services';
   });
 
   useEffect(() => {
     if (typeof params.q === 'string') setQuery(params.q);
-    if (params.tab) setTab(params.tab as ExploreTab);
-    if (params.type) {
-      const next = (params.type.charAt(0).toUpperCase() + params.type.slice(1)) as CourseType;
-      if (['School', 'University', 'Skills'].includes(next)) setCourseType(next);
+    const raw = params.serviceType ?? params.type;
+    if (raw) {
+      const next = normalizeServiceType(String(raw));
+      if (next) setServiceType(next);
     }
-  }, [params.q, params.tab, params.type]);
+    if (params.result === 'providers' || params.tab === 'tutors' || params.tab === 'institutes') {
+      setResultTab('providers');
+    }
+  }, [params.q, params.serviceType, params.type, params.result, params.tab]);
+
+  useEffect(() => {
+    setProviderType('all');
+  }, [serviceType]);
+
+  const allowedProviders = serviceType ? providersForService(serviceType) : [];
 
   const coursesQuery = useCourses({
     q: query || undefined,
-    type: courseType,
+    serviceType,
+    providerType: providerType === 'all' ? undefined : providerType,
     pageSize: layout.courseColumns * 4,
   });
-  const tutorsQuery = useTutors({ q: query || undefined, pageSize: 20 });
-  const institutesQuery = useInstitutes({ q: query || undefined, pageSize: 20 });
+
+  const tutorProviderFilter =
+    providerType === 'Teacher' || providerType === 'Trainer' ? providerType : undefined;
+  const tutorsQuery = useTutors({
+    q: query || undefined,
+    providerType: tutorProviderFilter,
+    pageSize: 20,
+  });
+  const institutesQuery = useInstitutes({
+    q: query || undefined,
+    pageSize: 20,
+  });
 
   const { refreshing, onRefresh } = useRefresh(async () => {
     await Promise.all([
@@ -68,40 +107,44 @@ export default function ExploreScreen() {
     ]);
   });
 
-  const segmentTabs: { id: ExploreTab; label: string }[] = [
-    { id: 'courses', label: t('explore.courses') },
-    { id: 'tutors', label: t('explore.tutors') },
-    { id: 'institutes', label: t('explore.institutes') },
-    { id: 'all', label: t('explore.all') },
-  ];
-
   const isLoading =
-    (tab !== 'tutors' && tab !== 'institutes' && coursesQuery.isLoading) ||
-    (tab !== 'courses' && tab !== 'institutes' && tutorsQuery.isLoading) ||
-    (tab !== 'courses' && tab !== 'tutors' && institutesQuery.isLoading);
-
-  const isError = coursesQuery.isError || tutorsQuery.isError || institutesQuery.isError;
+    resultTab === 'services'
+      ? coursesQuery.isLoading
+      : tutorsQuery.isLoading || institutesQuery.isLoading;
+  const isError =
+    resultTab === 'services'
+      ? coursesQuery.isError
+      : tutorsQuery.isError || institutesQuery.isError;
 
   const courses = coursesQuery.data?.data ?? [];
   const tutors = tutorsQuery.data?.data ?? [];
   const institutes = institutesQuery.data?.data ?? [];
 
-  const listData = useMemo(() => {
-    if (tab === 'courses') {
-      return courses.map((item) => ({ kind: 'course' as const, item }));
+  const providerRows = useMemo(() => {
+    const rows: Array<
+      { kind: 'tutor'; item: Tutor } | { kind: 'institute'; item: Institute }
+    > = [];
+    const showTeachers =
+      !serviceType ||
+      allowedProviders.includes('Teacher') ||
+      allowedProviders.includes('Trainer');
+    const showInstitutes = !serviceType || allowedProviders.includes('Institute');
+
+    if (providerType === 'all' || providerType === 'Teacher' || providerType === 'Trainer') {
+      if (showTeachers) {
+        tutors.forEach((item) => {
+          const pt = item.tutorProfile?.providerType;
+          if (providerType === 'all' || pt === providerType || (!pt && providerType === 'Teacher')) {
+            rows.push({ kind: 'tutor', item });
+          }
+        });
+      }
     }
-    if (tab === 'tutors') {
-      return tutors.map((item) => ({ kind: 'tutor' as const, item }));
+    if ((providerType === 'all' || providerType === 'Institute') && showInstitutes) {
+      institutes.forEach((item) => rows.push({ kind: 'institute', item }));
     }
-    if (tab === 'institutes') {
-      return institutes.map((item) => ({ kind: 'institute' as const, item }));
-    }
-    return [] as Array<
-      | { kind: 'course'; item: Course }
-      | { kind: 'tutor'; item: Tutor }
-      | { kind: 'institute'; item: Institute }
-    >;
-  }, [tab, courses, tutors, institutes]);
+    return rows;
+  }, [tutors, institutes, providerType, serviceType, allowedProviders]);
 
   const courseGap = spacing.md;
   const columns = layout.courseColumns;
@@ -110,22 +153,11 @@ export default function ExploreScreen() {
     writingDirection: (isRTL ? 'rtl' : 'ltr') as 'rtl' | 'ltr',
   };
 
-  const renderCourseGrid = (items: Course[]) => (
-    <View style={[styles.courseGrid, { marginHorizontal: -courseGap / 2 }]}>
-      {items.map((course) => (
-        <View
-          key={course.id}
-          style={{
-            width: `${100 / columns}%` as `${number}%`,
-            paddingHorizontal: courseGap / 2,
-            marginBottom: courseGap,
-          }}
-        >
-          <CourseCard course={course} variant="featured" />
-        </View>
-      ))}
-    </View>
-  );
+  const refetchAll = () => {
+    coursesQuery.refetch();
+    tutorsQuery.refetch();
+    institutesQuery.refetch();
+  };
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -141,49 +173,37 @@ export default function ExploreScreen() {
           },
         ]}
       >
-        <View style={styles.header}>
-          <Text style={[styles.title, writing]}>{t('explore.title')}</Text>
-        </View>
+        <Text style={[styles.title, writing]}>{t('explore.title')}</Text>
 
         <SearchBar
           value={query}
           onChangeText={setQuery}
           placeholder={t('home.searchPlaceholder')}
           trailingIcon="scan-outline"
-          onSubmit={() => {
-            coursesQuery.refetch();
-            tutorsQuery.refetch();
-            institutesQuery.refetch();
-          }}
-          onTrailingPress={() => {
-            coursesQuery.refetch();
-            tutorsQuery.refetch();
-            institutesQuery.refetch();
-          }}
+          onSubmit={refetchAll}
+          onTrailingPress={refetchAll}
         />
 
+        <Text style={[styles.sectionLabel, writing]}>{t('home.whatToLearn')}</Text>
         <View style={styles.categoryRow}>
-          {CATEGORY_CHIPS.map((chip) => {
-            const selected =
-              chip.id === 'institutes'
-                ? tab === 'institutes'
-                : courseType?.toLowerCase() === chip.id;
+          {SERVICE_CATEGORY_CHIPS.map((chip) => {
+            const selected = serviceType === chip.id;
             return (
               <Pressable
                 key={chip.id}
                 style={styles.categoryItem}
                 onPress={() => {
-                  if (chip.id === 'institutes') {
-                    setTab('institutes');
-                    setCourseType(undefined);
-                    return;
-                  }
-                  setTab('courses');
-                  const next = (chip.id.charAt(0).toUpperCase() + chip.id.slice(1)) as CourseType;
-                  setCourseType((prev) => (prev === next ? undefined : next));
+                  setServiceType((prev) => (prev === chip.id ? undefined : chip.id));
+                  setResultTab('services');
                 }}
               >
-                <View style={[styles.categoryIcon, { backgroundColor: chip.soft }]}>
+                <View
+                  style={[
+                    styles.categoryIcon,
+                    { backgroundColor: chip.soft },
+                    selected && styles.categoryIconSelected,
+                  ]}
+                >
                   <Ionicons name={chip.icon} size={26} color={chip.tint} />
                 </View>
                 <Text style={[styles.categoryLabel, selected && styles.categoryLabelSelected]}>
@@ -194,22 +214,48 @@ export default function ExploreScreen() {
           })}
         </View>
 
+        {serviceType ? (
+          <View style={styles.providerBlock}>
+            <Text style={[styles.sectionLabel, writing]}>{t('marketplace.providerFilter')}</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.providerChips}>
+              <Pressable
+                onPress={() => setProviderType('all')}
+                style={[styles.chip, providerType === 'all' && styles.chipActive]}
+              >
+                <Text style={[styles.chipText, providerType === 'all' && styles.chipTextActive]}>
+                  {t('marketplace.allProviders')}
+                </Text>
+              </Pressable>
+              {allowedProviders.map((pt) => (
+                <Pressable
+                  key={pt}
+                  onPress={() => setProviderType(pt)}
+                  style={[styles.chip, providerType === pt && styles.chipActive]}
+                >
+                  <Text style={[styles.chipText, providerType === pt && styles.chipTextActive]}>
+                    {t(PROVIDER_TYPE_LABEL_KEYS[pt])}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        ) : null}
+
         <View style={styles.segments}>
-          {segmentTabs.map((item) => {
-            const active = tab === item.id;
+          {(
+            [
+              { id: 'services' as const, label: t('marketplace.services') },
+              { id: 'providers' as const, label: t('marketplace.providers') },
+            ] as const
+          ).map((item) => {
+            const active = resultTab === item.id;
             return (
               <Pressable
                 key={item.id}
-                onPress={() => {
-                  setTab(item.id);
-                  if (item.id !== 'courses') setCourseType(undefined);
-                }}
+                onPress={() => setResultTab(item.id)}
                 style={[styles.segment, active && styles.segmentActive]}
               >
-                <Text
-                  style={[styles.segmentText, active && styles.segmentTextActive]}
-                  numberOfLines={1}
-                >
+                <Text style={[styles.segmentText, active && styles.segmentTextActive]}>
                   {item.label}
                 </Text>
               </Pressable>
@@ -217,107 +263,60 @@ export default function ExploreScreen() {
           })}
         </View>
 
-        {isError && !isLoading ? (
-          <ErrorState
-            onRetry={() => {
-              coursesQuery.refetch();
-              tutorsQuery.refetch();
-              institutesQuery.refetch();
-            }}
-          />
-        ) : null}
+        {isError && !isLoading ? <ErrorState onRetry={refetchAll} /> : null}
+        {isLoading ? <LoadingState /> : null}
 
-        {isLoading ? (
-          <LoadingState />
-        ) : !isError && tab === 'all' ? (
-          <ScrollView
-            contentContainerStyle={styles.list}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-            showsVerticalScrollIndicator={false}
-          >
-            <SectionHeader title={t('explore.courses')} />
-            {courses.length ? (
-              renderCourseGrid(courses)
-            ) : (
-              <EmptyState title={t('common.empty')} subtitle={t('home.emptyCoursesHint')} />
-            )}
-
-            <SectionHeader title={t('explore.tutors')} />
-            {tutors.length ? (
-              tutors.map((tutor: Tutor) => (
-                <View key={tutor.id} style={styles.listItem}>
-                  <TutorCard tutor={tutor} />
-                </View>
-              ))
-            ) : (
-              <EmptyState title={t('common.empty')} />
-            )}
-
-            <SectionHeader title={t('explore.institutes')} />
-            {institutes.length ? (
-              institutes.map((institute: Institute) => (
-                <View key={institute.id} style={styles.listItem}>
-                  <InstituteCard institute={institute} />
-                </View>
-              ))
-            ) : (
-              <EmptyState title={t('common.empty')} />
-            )}
-          </ScrollView>
-        ) : !isError ? (
+        {!isLoading && !isError && resultTab === 'services' ? (
           <>
-            <SectionHeader
-              title={
-                tab === 'tutors'
-                  ? t('explore.tutors')
-                  : tab === 'institutes'
-                    ? t('explore.institutes')
-                    : t('explore.courses')
-              }
-            />
+            <SectionHeader title={t('marketplace.services')} />
             <FlatList
-              key={`explore-${tab}-${columns}`}
-              data={listData as Array<
-                | { kind: 'course'; item: Course }
-                | { kind: 'tutor'; item: Tutor }
-                | { kind: 'institute'; item: Institute }
-              >}
-              keyExtractor={(row) => `${row.kind}-${row.item.id}`}
-              numColumns={tab === 'courses' ? columns : 1}
+              key={`services-${columns}-${serviceType ?? 'all'}-${providerType}`}
+              data={courses}
+              keyExtractor={(item) => item.id}
+              numColumns={columns}
               contentContainerStyle={styles.list}
-              columnWrapperStyle={tab === 'courses' && columns > 1 ? styles.columnWrap : undefined}
+              columnWrapperStyle={columns > 1 ? styles.columnWrap : undefined}
               refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
               ListEmptyComponent={
                 <EmptyState title={t('common.empty')} subtitle={t('home.emptyCoursesHint')} />
               }
               showsVerticalScrollIndicator={false}
-              renderItem={({ item: row }) => {
-                if (row.kind === 'course') {
-                  return (
-                    <View
-                      style={{
-                        width: `${100 / columns}%` as `${number}%`,
-                        paddingHorizontal: courseGap / 2,
-                        marginBottom: courseGap,
-                      }}
-                    >
-                      <CourseCard course={row.item} variant="featured" />
-                    </View>
-                  );
-                }
-                if (row.kind === 'tutor') {
-                  return (
-                    <View style={styles.listItem}>
-                      <TutorCard tutor={row.item} />
-                    </View>
-                  );
-                }
-                return (
+              renderItem={({ item }) => (
+                <View
+                  style={{
+                    width: `${100 / columns}%` as `${number}%`,
+                    paddingHorizontal: courseGap / 2,
+                    marginBottom: courseGap,
+                  }}
+                >
+                  <CourseCard course={item} variant="featured" />
+                </View>
+              )}
+            />
+          </>
+        ) : null}
+
+        {!isLoading && !isError && resultTab === 'providers' ? (
+          <>
+            <SectionHeader title={t('marketplace.serviceProviders')} />
+            <FlatList
+              data={providerRows}
+              keyExtractor={(row) => `${row.kind}-${row.item.id}`}
+              contentContainerStyle={styles.list}
+              refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+              ListEmptyComponent={<EmptyState title={t('common.empty')} />}
+              showsVerticalScrollIndicator={false}
+              renderItem={({ item: row }) =>
+                row.kind === 'tutor' ? (
+                  <View style={styles.listItem}>
+                    <TutorCard tutor={row.item} />
+                  </View>
+                ) : (
                   <View style={styles.listItem}>
                     <InstituteCard institute={row.item} />
                   </View>
-                );
-              }}
+                )
+              }
             />
           </>
         ) : null}
@@ -332,18 +331,16 @@ const styles = StyleSheet.create({
     paddingTop: spacing.md,
     gap: spacing.lg,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
   title: {
     ...typography.heading,
     color: colors.text,
-    flex: 1,
     fontSize: 26,
     lineHeight: 32,
+  },
+  sectionLabel: {
+    ...typography.subheading,
+    color: colors.text,
+    fontSize: 16,
   },
   categoryRow: {
     flexDirection: 'row',
@@ -362,6 +359,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  categoryIconSelected: {
+    borderWidth: 2,
+    borderColor: colors.primary,
+  },
   categoryLabel: {
     ...typography.caption,
     color: colors.text,
@@ -369,6 +370,29 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   categoryLabelSelected: {
+    color: colors.primary,
+    fontWeight: '800',
+  },
+  providerBlock: { gap: spacing.sm },
+  providerChips: { gap: spacing.sm, paddingVertical: 2 },
+  chip: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.full,
+    backgroundColor: colors.white,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+  },
+  chipActive: {
+    backgroundColor: colors.lavenderSoft,
+    borderColor: colors.lavender,
+  },
+  chipText: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    fontWeight: '600',
+  },
+  chipTextActive: {
     color: colors.primary,
     fontWeight: '800',
   },
@@ -410,10 +434,6 @@ const styles = StyleSheet.create({
   },
   columnWrap: {
     marginHorizontal: -spacing.md / 2,
-  },
-  courseGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
   },
   listItem: {
     marginBottom: spacing.md,

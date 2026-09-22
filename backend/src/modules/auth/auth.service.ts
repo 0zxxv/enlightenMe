@@ -1,4 +1,4 @@
-import { Role } from '@prisma/client';
+import { ProviderType, Role } from '@prisma/client';
 import { env } from '../../config/env.js';
 import { AppError } from '../../lib/errors.js';
 import {
@@ -67,10 +67,26 @@ export async function register(input: RegisterInput) {
       phone: input.phone,
       role: input.role,
       language: input.language ?? 'en',
-      ...(input.role === Role.Student ? { studentProfile: { create: {} } } : {}),
+      ...(input.role === Role.Student
+        ? {
+            studentProfile: {
+              create: {
+                ...(input.learnerType ? { learnerType: input.learnerType } : {}),
+              },
+            },
+          }
+        : {}),
       ...(input.role === Role.Parent ? { parentProfile: { create: {} } } : {}),
       ...(input.role === Role.Tutor
-        ? { tutorProfile: { create: { bio: '', expertise: [] } } }
+        ? {
+            tutorProfile: {
+              create: {
+                bio: '',
+                expertise: [],
+                providerType: input.providerType ?? ProviderType.Teacher,
+              },
+            },
+          }
         : {}),
     },
   });

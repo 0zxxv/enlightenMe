@@ -28,10 +28,25 @@ enum VerificationStatus {
   Suspended
 }
 
-enum CourseType {
-  School
-  University
-  Skills
+/// What is being sold (marketplace service category).
+enum ServiceType {
+  SchoolCourse
+  UniversityCourse
+  TrainingSkill
+}
+
+/// Who provides/offers the service (independent of account Role).
+enum ProviderType {
+  Teacher
+  Institute
+  Trainer
+}
+
+/// Who is learning/buying (preference/profile — does not restrict browsing).
+enum LearnerType {
+  SchoolStudent
+  UniversityStudent
+  Individual
 }
 
 enum CourseFormat {
@@ -108,13 +123,14 @@ model User {
 }
 
 model StudentProfile {
-  id        String   @id @default(uuid()) @db.Uuid
-  userId    String   @unique @db.Uuid
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  grade     String?
-  school    String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String       @id @default(uuid()) @db.Uuid
+  userId      String       @unique @db.Uuid
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  learnerType LearnerType?
+  grade       String?
+  school      String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 }
 
 model ParentProfile {
@@ -129,6 +145,8 @@ model TutorProfile {
   id                 String             @id @default(uuid()) @db.Uuid
   userId             String             @unique @db.Uuid
   user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Teacher vs Trainer — independent of account Role=Tutor.
+  providerType       ProviderType       @default(Teacher)
   bio                String?
   expertise          String[]           @default([])
   verificationStatus VerificationStatus @default(Unverified)
@@ -142,6 +160,7 @@ model TutorProfile {
   payouts            Payout[]
 
   @@index([verificationStatus])
+  @@index([providerType])
 }
 
 model Institute {
@@ -223,13 +242,17 @@ model Course {
   descriptionAr   String?
   categoryId      String       @db.Uuid
   subjectId       String?      @db.Uuid
-  type            CourseType
+  /// Primary marketplace service type (not a provider or learner role).
+  serviceType     ServiceType
   level           String?
   grade           String?
+  stage           String?
+  curriculumName  String?
   universityId    String?      @db.Uuid
   collegeId       String?      @db.Uuid
   courseCode      String?
   major           String?
+  skillCategory   String?
   priceDecimal    Decimal      @db.Decimal(12, 3)
   currency        String       @default("BHD")
   durationMinutes Int?
@@ -261,7 +284,7 @@ model Course {
   @@index([courseCode])
   @@index([title])
   @@index([status])
-  @@index([type])
+  @@index([serviceType])
   @@index([tutorId])
   @@index([instituteId])
 }

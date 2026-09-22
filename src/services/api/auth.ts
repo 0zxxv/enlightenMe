@@ -1,5 +1,12 @@
 import type { ApiSuccess } from '@/types/api';
-import type { AuthResponse, LanguageCode, Role, User } from '@/types/models';
+import type {
+  AuthResponse,
+  LanguageCode,
+  LearnerType,
+  ProviderType,
+  Role,
+  User,
+} from '@/types/models';
 import { apiRequest, clearTokens, setTokens } from './client';
 
 export type LoginInput = {
@@ -15,6 +22,8 @@ export type RegisterInput = {
   phone?: string;
   role: Role;
   language?: LanguageCode;
+  learnerType?: LearnerType;
+  providerType?: Extract<ProviderType, 'Teacher' | 'Trainer'>;
 };
 
 export async function login(input: LoginInput) {

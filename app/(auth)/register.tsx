@@ -17,9 +17,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/features/auth/useAuth';
 import { useTranslation } from '@/i18n';
+import { LEARNER_TYPE_LABEL_KEYS, PROVIDER_TYPE_SINGULAR_KEYS } from '@/domain/marketplace';
 import { colors, radius, shadows, spacing, typography } from '@/theme';
 import { ApiError } from '@/types/api';
-import type { Role } from '@/types/models';
+import type { LearnerType, ProviderType, Role } from '@/types/models';
 
 const BEIGE = '#F7F3EE';
 const SERIF = Platform.select({
@@ -76,6 +77,10 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [role, setRole] = useState<Role>('Student');
+  const [learnerType, setLearnerType] = useState<LearnerType>('SchoolStudent');
+  const [providerType, setProviderType] = useState<Extract<ProviderType, 'Teacher' | 'Trainer'>>(
+    'Teacher',
+  );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
 
@@ -101,6 +106,8 @@ export default function RegisterScreen() {
         password,
         role,
         language,
+        ...(role === 'Student' ? { learnerType } : {}),
+        ...(role === 'Tutor' ? { providerType } : {}),
       });
       router.replace(user.role === 'Tutor' ? '/tutor-dashboard' : '/(tabs)');
     } catch (err) {
@@ -185,6 +192,56 @@ export default function RegisterScreen() {
                   })}
                 </View>
               </View>
+
+              {role === 'Student' ? (
+                <View style={styles.roleBlock}>
+                  <Text style={styles.fieldLabel}>{t('marketplace.learnerType')}</Text>
+                  <View style={styles.roles}>
+                    {(
+                      [
+                        'SchoolStudent',
+                        'UniversityStudent',
+                        'Individual',
+                      ] as LearnerType[]
+                    ).map((value) => {
+                      const selected = learnerType === value;
+                      return (
+                        <Pressable
+                          key={value}
+                          onPress={() => setLearnerType(value)}
+                          style={[styles.roleCard, selected && styles.roleCardSelected]}
+                        >
+                          <Text style={[styles.roleLabel, selected && styles.roleLabelSelected]}>
+                            {t(LEARNER_TYPE_LABEL_KEYS[value])}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </View>
+              ) : null}
+
+              {role === 'Tutor' ? (
+                <View style={styles.roleBlock}>
+                  <Text style={styles.fieldLabel}>{t('marketplace.providerType')}</Text>
+                  <View style={styles.roles}>
+                    {(['Teacher', 'Trainer'] as const).map((value) => {
+                      const selected = providerType === value;
+                      return (
+                        <Pressable
+                          key={value}
+                          onPress={() => setProviderType(value)}
+                          style={[styles.roleCard, selected && styles.roleCardSelected]}
+                        >
+                          <Text style={[styles.roleLabel, selected && styles.roleLabelSelected]}>
+                            {t(PROVIDER_TYPE_SINGULAR_KEYS[value])}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+                </View>
+              ) : null}
 
               <IconField
                 label={t('auth.firstName')}

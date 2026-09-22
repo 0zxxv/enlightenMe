@@ -25,6 +25,16 @@ export function TutorCard({ tutor }: Props) {
       <View style={styles.body}>
         <View style={styles.row}>
           <Text style={styles.name}>{name}</Text>
+          {profile?.providerType ? (
+            <Badge
+              label={t(
+                profile.providerType === 'Trainer'
+                  ? 'marketplace.trainer'
+                  : 'marketplace.teacher',
+              )}
+              tone="neutral"
+            />
+          ) : null}
           {profile?.verificationStatus === 'Verified' ? (
             <Badge label={t('common.verified')} tone="success" />
           ) : null}

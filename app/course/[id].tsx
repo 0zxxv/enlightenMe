@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '@/components/Avatar';
+import { Badge } from '@/components/Badge';
 import { Button } from '@/components/Button';
 import { EmptyState } from '@/components/EmptyState';
 import { ErrorState } from '@/components/ErrorState';
@@ -24,6 +25,11 @@ import { useCourse } from '@/features/courses/hooks';
 import { useLayout } from '@/hooks/useLayout';
 import { useRefresh } from '@/hooks/useRefresh';
 import { useTranslation } from '@/i18n';
+import {
+  PROVIDER_TYPE_SINGULAR_KEYS,
+  SERVICE_TYPE_SINGULAR_KEYS,
+  normalizeServiceType,
+} from '@/domain/marketplace';
 import { colors, radius, shadows, spacing, typography } from '@/theme';
 import { courseTitle, fullName } from '@/utils/format';
 import { resolveCourseImageSource } from '@/utils/courseImages';
@@ -78,6 +84,11 @@ export default function CourseDetailsScreen() {
   }
 
   const tutorName = fullName(course.tutor?.firstName, course.tutor?.lastName);
+  const serviceType =
+    normalizeServiceType(String(course.serviceType ?? course.type ?? '')) ?? 'TrainingSkill';
+  const providerType = course.instituteId
+    ? ('Institute' as const)
+    : course.tutor?.tutorProfile?.providerType;
   const description =
     language === 'ar' && course.descriptionAr ? course.descriptionAr : course.description;
   const { source: imageSource, isLocal } = resolveCourseImageSource(course);
@@ -197,6 +208,12 @@ export default function CourseDetailsScreen() {
           ]}
         >
           <Text style={styles.title}>{courseTitle(course, language)}</Text>
+          <View style={styles.metaBadges}>
+            <Badge label={t(SERVICE_TYPE_SINGULAR_KEYS[serviceType])} tone="primary" />
+            {providerType ? (
+              <Badge label={t(PROVIDER_TYPE_SINGULAR_KEYS[providerType])} tone="neutral" />
+            ) : null}
+          </View>
           <Text style={styles.description} numberOfLines={3}>
             {description}
           </Text>
@@ -360,6 +377,11 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontSize: 24,
     lineHeight: 30,
+  },
+  metaBadges: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
   },
   description: {
     ...typography.body,

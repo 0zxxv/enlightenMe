@@ -1,11 +1,12 @@
 import type { ApiPaginated, ApiSuccess } from '@/types/api';
-import type { Tutor } from '@/types/models';
+import type { ProviderType, Tutor } from '@/types/models';
 import { apiRequest } from './client';
 
 export type ListTutorsParams = {
   q?: string;
   page?: number;
   pageSize?: number;
+  providerType?: ProviderType;
 };
 
 function toQuery(params: Record<string, string | number | undefined>) {

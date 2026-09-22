@@ -4,7 +4,8 @@ import type {
   CourseFormat,
   CourseSession,
   CourseStatus,
-  CourseType,
+  ProviderType,
+  ServiceType,
 } from '@/types/models';
 import { apiRequest } from './client';
 
@@ -12,7 +13,10 @@ export type ListCoursesParams = {
   q?: string;
   page?: number;
   pageSize?: number;
-  type?: CourseType;
+  serviceType?: ServiceType;
+  /** @deprecated use serviceType */
+  type?: ServiceType | string;
+  providerType?: ProviderType;
   category?: string;
   format?: CourseFormat;
   minPrice?: number;
@@ -22,6 +26,10 @@ export type ListCoursesParams = {
   mine?: boolean;
   tutorId?: string;
   courseCode?: string;
+  grade?: string;
+  stage?: string;
+  level?: string;
+  universityId?: string;
 };
 
 function toQuery(params: Record<string, string | number | boolean | undefined>) {
@@ -34,7 +42,13 @@ function toQuery(params: Record<string, string | number | boolean | undefined>) 
 }
 
 export async function listCourses(params: ListCoursesParams = {}) {
-  return apiRequest<ApiPaginated<Course>>(`/courses${toQuery(params)}`);
+  const { type, serviceType, ...rest } = params;
+  return apiRequest<ApiPaginated<Course>>(
+    `/courses${toQuery({
+      ...rest,
+      serviceType: serviceType ?? type,
+    })}`,
+  );
 }
 
 export async function getCourse(id: string) {

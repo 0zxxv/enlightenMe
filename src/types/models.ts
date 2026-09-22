@@ -1,6 +1,10 @@
 export type Role = 'Student' | 'Parent' | 'Tutor' | 'InstituteAdmin' | 'Admin';
 export type LanguageCode = 'en' | 'ar';
-export type CourseType = 'School' | 'University' | 'Skills';
+/** @deprecated use ServiceType */
+export type CourseType = 'School' | 'University' | 'Skills' | ServiceType;
+export type ServiceType = 'SchoolCourse' | 'UniversityCourse' | 'TrainingSkill';
+export type ProviderType = 'Teacher' | 'Institute' | 'Trainer';
+export type LearnerType = 'SchoolStudent' | 'UniversityStudent' | 'Individual';
 export type CourseFormat = 'Online' | 'InPerson' | 'Hybrid';
 export type CourseStatus = 'Draft' | 'Published' | 'Paused' | 'Archived';
 export type BookingStatus = 'Pending' | 'Confirmed' | 'Completed' | 'Cancelled' | 'Refunded';
@@ -58,6 +62,7 @@ export type TutorProfile = {
   userId: string;
   bio: string;
   expertise: string[];
+  providerType?: ProviderType;
   verificationStatus: VerificationStatus;
   ratingAvg: number;
   ratingCount: number;
@@ -118,11 +123,16 @@ export type Course = {
   descriptionAr?: string | null;
   categoryId: string;
   subjectId?: string | null;
-  type: CourseType;
+  serviceType: ServiceType;
+  /** @deprecated legacy field — prefer serviceType */
+  type?: CourseType;
   level?: string | null;
   grade?: string | null;
+  stage?: string | null;
+  curriculumName?: string | null;
   courseCode?: string | null;
   major?: string | null;
+  skillCategory?: string | null;
   priceDecimal: number | string;
   currency: string;
   durationMinutes?: number | null;

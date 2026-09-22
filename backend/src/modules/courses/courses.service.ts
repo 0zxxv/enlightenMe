@@ -1,26 +1,50 @@
 import {
   CourseFormat,
   CourseStatus,
-  CourseType,
   Prisma,
+  ProviderType,
   Role,
+  ServiceType,
   SessionStatus,
 } from '@prisma/client';
 import { z } from 'zod';
+import {
+  isProviderAllowedForService,
+  normalizeServiceType,
+  type ServiceTypeId,
+} from '../../domain/marketplace.js';
 import { AppError } from '../../lib/errors.js';
 import { prisma } from '../../lib/prisma.js';
+
+const serviceTypeInput = z
+  .string()
+  .transform((v, ctx) => {
+    const normalized = normalizeServiceType(v);
+    if (!normalized) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Invalid serviceType' });
+      return z.NEVER;
+    }
+    return normalized as ServiceType;
+  });
 
 export const listCoursesQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   pageSize: z.coerce.number().int().positive().max(100).default(20),
   q: z.string().optional(),
   category: z.string().optional(),
-  type: z.nativeEnum(CourseType).optional(),
+  /** @deprecated use serviceType — kept for older clients */
+  type: serviceTypeInput.optional(),
+  serviceType: serviceTypeInput.optional(),
+  providerType: z.nativeEnum(ProviderType).optional(),
   format: z.nativeEnum(CourseFormat).optional(),
   minPrice: z.coerce.number().optional(),
   maxPrice: z.coerce.number().optional(),
   minRating: z.coerce.number().min(0).max(5).optional(),
   universityId: z.string().uuid().optional(),
+  collegeId: z.string().uuid().optional(),
+  grade: z.string().optional(),
+  stage: z.string().optional(),
+  level: z.string().optional(),
   courseCode: z.string().optional(),
   /** Owner-only; public list always forces Published. */
   status: z.nativeEnum(CourseStatus).optional(),
@@ -38,13 +62,18 @@ export const createCourseSchema = z.object({
   descriptionAr: z.string().optional(),
   categoryId: z.string().uuid(),
   subjectId: z.string().uuid().optional(),
-  type: z.nativeEnum(CourseType),
+  serviceType: serviceTypeInput,
+  /** @deprecated use serviceType */
+  type: serviceTypeInput.optional(),
   level: z.string().optional(),
   grade: z.string().optional(),
+  stage: z.string().optional(),
+  curriculumName: z.string().optional(),
   universityId: z.string().uuid().optional(),
   collegeId: z.string().uuid().optional(),
   courseCode: z.string().optional(),
   major: z.string().optional(),
+  skillCategory: z.string().optional(),
   priceDecimal: z.coerce.number().nonnegative(),
   currency: z.string().default('BHD'),
   durationMinutes: z.number().int().positive().optional(),
@@ -158,11 +187,29 @@ export async function listCourses(
       OR: [{ slug: query.category }, { id: query.category }],
     };
   }
-  if (query.type) where.type = query.type;
+  const serviceType = query.serviceType ?? query.type;
+  if (serviceType) where.serviceType = serviceType;
   if (query.format) where.format = query.format;
   if (query.universityId) where.universityId = query.universityId;
+  if (query.collegeId) where.collegeId = query.collegeId;
+  if (query.grade) where.grade = { equals: query.grade, mode: 'insensitive' };
+  if (query.stage) where.stage = { equals: query.stage, mode: 'insensitive' };
+  if (query.level) where.level = { equals: query.level, mode: 'insensitive' };
   if (query.courseCode) {
     where.courseCode = { equals: query.courseCode, mode: 'insensitive' };
+  }
+  if (query.providerType === ProviderType.Institute) {
+    where.instituteId = { not: null };
+  } else if (query.providerType === ProviderType.Teacher || query.providerType === ProviderType.Trainer) {
+    where.AND = [
+      ...(Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []),
+      { tutorId: { not: null } },
+      {
+        tutor: {
+          tutorProfile: { providerType: query.providerType },
+        },
+      },
+    ];
   }
   if (query.minRating !== undefined) where.ratingAvg = { gte: query.minRating };
   if (query.minPrice !== undefined || query.maxPrice !== undefined) {
@@ -235,11 +282,34 @@ export async function getCourseById(
 }
 
 export async function createCourse(tutorId: string, input: z.infer<typeof createCourseSchema>) {
-  const { curriculum, ...data } = input;
+  const { curriculum, type: legacyType, serviceType: explicitType, ...rest } = input;
+  const serviceType = (explicitType ?? legacyType) as ServiceType | undefined;
+  if (!serviceType) {
+    throw new AppError('VALIDATION', 'serviceType is required', 400);
+  }
+
+  const profile = await prisma.tutorProfile.findUnique({ where: { userId: tutorId } });
+  if (!profile) {
+    throw new AppError('FORBIDDEN', 'Tutor profile required to create a course', 403);
+  }
+  if (
+    !isProviderAllowedForService(
+      serviceType as ServiceTypeId,
+      profile.providerType as 'Teacher' | 'Institute' | 'Trainer',
+    )
+  ) {
+    throw new AppError(
+      'FORBIDDEN',
+      `Provider type ${profile.providerType} cannot offer ${serviceType} services`,
+      403,
+    );
+  }
+
   const course = await prisma.course.create({
     data: {
-      ...data,
-      priceDecimal: data.priceDecimal,
+      ...rest,
+      serviceType,
+      priceDecimal: rest.priceDecimal,
       tutorId,
       status: CourseStatus.Draft,
       curriculum: curriculum
@@ -276,7 +346,9 @@ export async function updateCourse(
   }
   assertOwner(course, userId, role);
 
-  const { curriculum, ...data } = input;
+  const { curriculum, type: legacyType, serviceType: explicitType, ...data } = input;
+  const serviceType = explicitType ?? legacyType;
+
   return prisma.$transaction(async (tx) => {
     if (curriculum) {
       await tx.courseCurriculumItem.deleteMany({ where: { courseId } });
@@ -290,9 +362,30 @@ export async function updateCourse(
         })),
       });
     }
+
+    if (serviceType) {
+      const profile = await tx.tutorProfile.findUnique({ where: { userId } });
+      if (
+        profile &&
+        !isProviderAllowedForService(
+          serviceType as ServiceTypeId,
+          profile.providerType as 'Teacher' | 'Institute' | 'Trainer',
+        )
+      ) {
+        throw new AppError(
+          'FORBIDDEN',
+          `Provider type ${profile.providerType} cannot offer ${serviceType} services`,
+          403,
+        );
+      }
+    }
+
     return tx.course.update({
       where: { id: courseId },
-      data,
+      data: {
+        ...data,
+        ...(serviceType ? { serviceType } : {}),
+      },
       include: courseInclude,
     });
   });
