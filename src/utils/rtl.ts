@@ -1,9 +1,18 @@
 import Constants from 'expo-constants';
 import { reloadAppAsync } from 'expo';
-import { I18nManager, Platform } from 'react-native';
+import { I18nManager, Platform, type ViewStyle } from 'react-native';
 
 export function isExpoGo() {
   return Constants.appOwnership === 'expo';
+}
+
+/**
+ * Yoga `direction` for native. RN-web rejects `direction` in StyleSheet
+ * (use document `dir` / writingDirection instead).
+ */
+export function yogaDirection(isRTL: boolean): ViewStyle {
+  if (Platform.OS === 'web') return {};
+  return { direction: isRTL ? 'rtl' : 'ltr' };
 }
 
 /** Persist + apply layout direction. Native (non–Expo Go) reloads so Yoga/I18nManager remount correctly. */

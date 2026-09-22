@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLayout } from '@/hooks/useLayout';
 import { useTranslation } from '@/i18n';
 import { colors, spacing } from '@/theme';
+import { yogaDirection } from '@/utils/rtl';
 
 type VisibleTab = {
   name: 'index' | 'courses' | 'bookings' | 'students' | 'messages' | 'profile';
@@ -89,7 +90,7 @@ export default function TutorDashboardLayout() {
                 borderTopWidth: 0,
                 width: 220,
                 paddingTop: spacing.xl,
-                direction: isRTL ? 'rtl' : 'ltr',
+                ...yogaDirection(isRTL),
               },
               tabBarItemStyle: {
                 flexDirection: 'row' as const,
@@ -111,7 +112,7 @@ export default function TutorDashboardLayout() {
                 height: tabBarHeight,
                 paddingBottom: bottomPad,
                 paddingTop: 6,
-                direction: isRTL ? 'rtl' : 'ltr',
+                ...yogaDirection(isRTL),
               },
               tabBarLabelStyle: {
                 fontSize: 11,

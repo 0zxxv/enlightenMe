@@ -1,10 +1,11 @@
 import React, { useEffect } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import { useI18n } from '@/i18n';
+import { yogaDirection } from '@/utils/rtl';
 
 /**
  * Mirrors layout for Arabic on web + Expo.
- * Native I18nManager is unreliable in Expo Go, so we drive Yoga via `direction`.
+ * Native: Yoga `direction`. Web: document `dir` (RN-web rejects style `direction`).
  */
 export function RtlShell({ children }: { children: React.ReactNode }) {
   const { isRTL, language, ready } = useI18n();
@@ -22,7 +23,7 @@ export function RtlShell({ children }: { children: React.ReactNode }) {
   return (
     <View
       key={`rtl-${language}`}
-      style={[styles.root, isRTL ? styles.rtl : styles.ltr]}
+      style={[styles.root, yogaDirection(isRTL)]}
       collapsable={false}
     >
       {children}
@@ -33,11 +34,5 @@ export function RtlShell({ children }: { children: React.ReactNode }) {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-  },
-  rtl: {
-    direction: 'rtl',
-  },
-  ltr: {
-    direction: 'ltr',
   },
 });

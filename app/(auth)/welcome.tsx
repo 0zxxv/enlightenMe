@@ -1,12 +1,11 @@
-import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
-import React from 'react';
-import { Platform, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/Button';
 import { useLayout } from '@/hooks/useLayout';
 import { useTranslation } from '@/i18n';
 import { colors, spacing, typography } from '@/theme';
+import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
+import { Platform, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const BEIGE = '#F7F3EE';
 /** Intrinsic size of assets/images/bg.png */
