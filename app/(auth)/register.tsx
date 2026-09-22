@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
 import { Link, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
@@ -15,14 +14,16 @@ import {
   type TextInputProps,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { AuthArtShell } from '@/components/AuthArtShell';
 import { useAuth } from '@/features/auth/useAuth';
 import { useTranslation } from '@/i18n';
+import en from '@/i18n/locales/en.json';
 import { LEARNER_TYPE_LABEL_KEYS, PROVIDER_TYPE_SINGULAR_KEYS } from '@/domain/marketplace';
 import { colors, radius, shadows, spacing, typography } from '@/theme';
 import { ApiError } from '@/types/api';
 import type { LearnerType, ProviderType, Role } from '@/types/models';
+import { yogaDirection } from '@/utils/rtl';
 
-const BEIGE = '#F7F3EE';
 const SERIF = Platform.select({
   ios: 'Georgia',
   android: 'serif',
@@ -119,27 +120,7 @@ export default function RegisterScreen() {
   };
 
   return (
-    <View style={styles.root}>
-      <View
-        style={[styles.decorTop, isRTL ? styles.decorTopRtl : null]}
-        pointerEvents="none"
-      >
-        <Image
-          source={require('../../assets/images/bg.png')}
-          style={styles.decorTopImage}
-          contentFit="cover"
-          contentPosition="top"
-        />
-      </View>
-      <View
-        style={[styles.decorBlobA, isRTL ? styles.decorBlobARtl : null]}
-        pointerEvents="none"
-      />
-      <View
-        style={[styles.decorBlobB, isRTL ? styles.decorBlobBRtl : null]}
-        pointerEvents="none"
-      />
-
+    <AuthArtShell>
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <KeyboardAvoidingView
           style={styles.flex}
@@ -150,13 +131,14 @@ export default function RegisterScreen() {
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
-            <View style={styles.header}>
+            <View style={[styles.header, yogaDirection(false), isRTL && styles.brandPinLeft]}>
               <Text style={styles.logoWord} accessibilityRole="header">
-                {t('brand.name').toLowerCase()}
+                {en.brand.name.toLowerCase()}
                 <Text style={styles.logoDot}>.</Text>
               </Text>
-              <Text style={styles.tagline}>{t('brand.tagline')}</Text>
-              <View style={[styles.accentBar, isRTL && styles.accentBarRtl]} />
+              <Text style={styles.tagline}>{en.brand.tagline}</Text>
+              <Text style={styles.marketplace}>{en.brand.marketplace}</Text>
+              <View style={styles.accentBar} />
             </View>
 
             <Text style={styles.title} accessibilityRole="header">
@@ -344,70 +326,13 @@ export default function RegisterScreen() {
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
-    </View>
+    </AuthArtShell>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: BEIGE,
-    overflow: 'hidden',
-  },
   flex: { flex: 1 },
-  safe: { flex: 1 },
-  decorTop: {
-    position: 'absolute',
-    top: -12,
-    right: -28,
-    width: '58%',
-    height: 260,
-    borderBottomLeftRadius: 120,
-    borderTopLeftRadius: 40,
-    overflow: 'hidden',
-    opacity: 0.92,
-  },
-  decorTopRtl: {
-    right: undefined,
-    left: -28,
-    borderBottomLeftRadius: 0,
-    borderTopLeftRadius: 0,
-    borderBottomRightRadius: 120,
-    borderTopRightRadius: 40,
-  },
-  decorTopImage: {
-    width: '140%',
-    height: '140%',
-    marginLeft: '-10%',
-  },
-  decorBlobA: {
-    position: 'absolute',
-    bottom: -60,
-    left: -80,
-    width: 220,
-    height: 180,
-    borderRadius: 110,
-    backgroundColor: colors.lavenderSoft,
-    opacity: 0.55,
-  },
-  decorBlobARtl: {
-    left: undefined,
-    right: -80,
-  },
-  decorBlobB: {
-    position: 'absolute',
-    bottom: 40,
-    left: 40,
-    width: 140,
-    height: 100,
-    borderRadius: 80,
-    backgroundColor: colors.beige,
-    opacity: 0.7,
-  },
-  decorBlobBRtl: {
-    left: undefined,
-    right: 40,
-  },
+  safe: { flex: 1, zIndex: 1 },
   content: {
     paddingHorizontal: spacing.xxl,
     paddingTop: spacing.lg,
@@ -415,9 +340,14 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   header: {
-    gap: 4,
+    gap: 2,
     marginBottom: spacing.sm,
     maxWidth: '55%',
+    alignSelf: 'flex-start',
+  },
+  /** Under RTL parent, flex-end is the physical left (same slot as English). */
+  brandPinLeft: {
+    alignSelf: 'flex-end',
   },
   logoWord: {
     fontFamily: SERIF,
@@ -426,6 +356,8 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.primary,
     letterSpacing: -0.4,
+    textAlign: 'left',
+    writingDirection: 'ltr',
   },
   logoDot: {
     color: colors.lavender,
@@ -433,8 +365,18 @@ const styles = StyleSheet.create({
   },
   tagline: {
     ...typography.caption,
-    color: colors.textMuted,
+    color: colors.textSecondary,
     fontSize: 13,
+    fontWeight: '600',
+    textAlign: 'left',
+    writingDirection: 'ltr',
+  },
+  marketplace: {
+    ...typography.caption,
+    color: colors.textMuted,
+    fontSize: 12,
+    textAlign: 'left',
+    writingDirection: 'ltr',
   },
   accentBar: {
     width: 36,
@@ -442,9 +384,7 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     backgroundColor: colors.lavender,
     marginTop: spacing.sm,
-  },
-  accentBarRtl: {
-    alignSelf: 'flex-end',
+    alignSelf: 'flex-start',
   },
   title: {
     fontFamily: SERIF,
@@ -503,11 +443,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   fieldInput: {
-    ...typography.body,
     flex: 1,
+    fontSize: 16,
+    lineHeight: 20,
     color: colors.text,
-    paddingVertical: spacing.md,
+    paddingVertical: 0,
+    marginVertical: 0,
     minHeight: 48,
+    textAlignVertical: 'center',
+    includeFontPadding: false,
   },
   eyeBtn: {
     paddingHorizontal: spacing.sm,

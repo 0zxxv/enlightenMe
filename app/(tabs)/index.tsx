@@ -83,7 +83,7 @@ export default function HomeScreen() {
             {greeting}, <Text style={styles.greetingName}>{firstName}</Text>{' '}
             <Text style={styles.wave}>👋</Text>
           </Text>
-          <IconButton name="notifications-outline" onPress={() => undefined} />
+          <IconButton name="notifications-outline" onPress={() => router.push('/notifications')} />
         </View>
 
         <SearchBar

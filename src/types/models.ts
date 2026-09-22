@@ -205,6 +205,7 @@ export type Message = {
   senderId: string;
   body: string;
   createdAt: string;
+  readAt?: string | null;
   sender?: Pick<User, 'id' | 'firstName' | 'lastName'>;
 };
 

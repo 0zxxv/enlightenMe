@@ -20,7 +20,7 @@ export function SearchBar({
   onChangeText,
   placeholder,
   onSubmit,
-  trailingIcon = 'scan-outline',
+  trailingIcon,
   onTrailingPress,
   style,
 }: Props) {

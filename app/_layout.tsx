@@ -97,6 +97,7 @@ function RootNavigator() {
           <Stack.Screen name="booking/confirmation" options={{ headerShown: true, title: '' }} />
           <Stack.Screen name="booking/detail/[id]" options={{ headerShown: true, title: '' }} />
           <Stack.Screen name="favorites" options={{ headerShown: true, title: '' }} />
+          <Stack.Screen name="notifications" options={{ headerShown: false }} />
           <Stack.Screen name="conversation/[id]" options={{ headerShown: true, title: '' }} />
           <Stack.Screen name="settings/index" options={{ headerShown: true, title: '' }} />
           <Stack.Screen name="settings/language" options={{ headerShown: true, title: '' }} />

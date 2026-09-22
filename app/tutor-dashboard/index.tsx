@@ -194,7 +194,7 @@ export default function TutorDashboardHome() {
               <View style={styles.bellWrap}>
                 <IconButton
                   name="notifications-outline"
-                  onPress={() => undefined}
+                  onPress={() => router.push('/notifications')}
                   background={colors.white}
                 />
                 <View style={styles.bellDot} />

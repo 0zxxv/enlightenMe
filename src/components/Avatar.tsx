@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
-import { colors, radius, typography } from '@/theme';
+import { colors } from '@/theme';
 
 type Props = {
   name: string;
@@ -27,6 +27,8 @@ export function Avatar({ name, uri, size = 48 }: Props) {
     );
   }
 
+  const fontSize = Math.round(size * 0.34);
+
   return (
     <View
       style={[
@@ -34,7 +36,19 @@ export function Avatar({ name, uri, size = 48 }: Props) {
         { width: size, height: size, borderRadius: size / 2 },
       ]}
     >
-      <Text style={[styles.initials, { fontSize: size * 0.36 }]}>{initials || '?'}</Text>
+      <Text
+        style={[
+          styles.initials,
+          {
+            fontSize,
+            lineHeight: fontSize,
+            includeFontPadding: false,
+          },
+        ]}
+        allowFontScaling={false}
+      >
+        {initials || '?'}
+      </Text>
     </View>
   );
 }
@@ -44,11 +58,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.lavenderSoft,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
   initials: {
-    ...typography.label,
     color: colors.primary,
-    textTransform: 'none',
-    letterSpacing: 0,
+    fontWeight: '700',
+    textAlign: 'center',
+    textAlignVertical: 'center',
   },
 });
