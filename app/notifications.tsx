@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { BackButton } from '@/components/BackButton';
 import { useTranslation } from '@/i18n';
 import { colors, radius, shadows, spacing, typography } from '@/theme';
 
@@ -196,17 +197,7 @@ export default function NotificationsScreen() {
 
       <SafeAreaView style={styles.safe} edges={['top']}>
         <View style={styles.topBar}>
-          <Pressable
-            style={styles.backBtn}
-            onPress={() => router.back()}
-            accessibilityLabel={t('common.back')}
-          >
-            <Ionicons
-              name={isRTL ? 'arrow-forward' : 'arrow-back'}
-              size={20}
-              color={colors.primary}
-            />
-          </Pressable>
+          <BackButton />
         </View>
 
         <FlatList

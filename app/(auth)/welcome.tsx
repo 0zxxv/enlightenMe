@@ -1,10 +1,10 @@
 import { Button } from '@/components/Button';
 import { useLayout } from '@/hooks/useLayout';
 import { useTranslation } from '@/i18n';
-import { colors, spacing, typography } from '@/theme';
+import { spacing } from '@/theme';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { Platform, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Platform, StyleSheet, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const BEIGE = '#F7F3EE';
@@ -16,27 +16,22 @@ export default function WelcomeScreen() {
   const { isDesktop, isTablet, isMobile, contentPadding } = useLayout();
 
   const isLarge = isTablet || isDesktop;
-  const panelMaxWidth = isDesktop ? 560 : isTablet ? 520 : undefined;
 
   const artSource = isDesktop
-    ? require('../../assets/images/bg4.png')
+    ? require('../../assets/images/welcome-laptop.png')
     : isTablet
-      ? require('../../assets/images/bg3.png')
+      ? require('../../assets/images/welcome-ipad.png')
       : require('../../assets/images/welcome.png');
-
-  // Phones: full-bleed under UI. Larger layouts: bottom art panel.
-  const artWidth = windowWidth;
-  const artHeight = isMobile ? windowHeight : Math.min(windowHeight * 0.72, windowHeight * 0.68);
 
   return (
     <View style={styles.root}>
       <View
         style={[
           styles.artLayer,
-          isMobile ? styles.artLayerPhone : null,
+          styles.artLayerFull,
           {
-            width: artWidth,
-            height: artHeight,
+            width: windowWidth,
+            height: windowHeight,
           },
         ]}
         pointerEvents="none"
@@ -44,8 +39,8 @@ export default function WelcomeScreen() {
         <Image
           source={artSource}
           style={styles.art}
-          contentFit={isMobile ? 'cover' : 'contain'}
-          contentPosition={isMobile ? 'center' : 'bottom'}
+          contentFit="cover"
+          contentPosition="center"
           accessibilityLabel={t('brand.quote')}
         />
       </View>
@@ -55,33 +50,20 @@ export default function WelcomeScreen() {
           style={[
             styles.topPanel,
             isMobile && styles.topPanelPhone,
-            isLarge && styles.topPanelLarge,
+            isLarge && styles.topPanelLargeScreen,
             {
-              maxWidth: panelMaxWidth ?? '100%',
               width: '100%',
               paddingHorizontal: contentPadding,
             },
           ]}
         >
-          {!isMobile ? (
-            <View style={[styles.brand, isLarge && styles.brandLarge]}>
-              <Text
-                style={[styles.logoWord, isLarge && styles.logoWordLarge]}
-                accessibilityRole="header"
-              >
-                {t('brand.name').toLowerCase()}
-                <Text style={styles.logoDot}>.</Text>
-              </Text>
-              <Text style={[styles.tagline, isLarge && styles.taglineLarge]}>
-                {t('brand.tagline')}
-              </Text>
-              <Text style={[styles.marketplace, isLarge && styles.marketplaceLarge]}>
-                {t('brand.marketplace')}
-              </Text>
-            </View>
-          ) : null}
-
-          <View style={[styles.actions, isLarge && styles.actionsLarge]}>
+          <View
+            style={[
+              styles.actions,
+              isLarge && styles.actionsLarge,
+              isLarge && styles.actionsLargeScreen,
+            ]}
+          >
             <Button
               title={t('auth.getStarted')}
               onPress={() => router.push('/(auth)/register')}
@@ -125,7 +107,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     zIndex: 0,
   },
-  artLayerPhone: {
+  artLayerFull: {
     top: 0,
     bottom: 0,
   },
@@ -150,54 +132,13 @@ const styles = StyleSheet.create({
     paddingTop: 0,
     paddingBottom: spacing.lg,
   },
-  topPanelLarge: {
-    paddingTop: spacing.xxl,
-    gap: spacing.xxl,
-  },
-  brand: {
-    gap: spacing.xs,
-    paddingTop: spacing.md,
-  },
-  brandLarge: {
-    gap: spacing.sm,
-    paddingTop: spacing.lg,
-  },
-  logoWord: {
-    fontSize: 42,
-    lineHeight: 48,
-    fontWeight: '800',
-    color: colors.primary,
-    letterSpacing: -0.5,
-  },
-  logoWordLarge: {
-    fontSize: 64,
-    lineHeight: 72,
-    letterSpacing: -1,
-  },
-  logoDot: {
-    color: colors.lavender,
-    fontWeight: '800',
-  },
-  tagline: {
-    ...typography.subheading,
-    color: colors.primary,
-    fontSize: 18,
-    marginTop: spacing.xs,
-  },
-  taglineLarge: {
-    fontSize: 28,
-    lineHeight: 36,
-    marginTop: spacing.sm,
-  },
-  marketplace: {
-    ...typography.body,
-    color: colors.textMuted,
-    marginTop: 2,
-  },
-  marketplaceLarge: {
-    fontSize: 20,
-    lineHeight: 28,
-    marginTop: spacing.xs,
+  topPanelLargeScreen: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    alignItems: 'flex-end',
+    alignSelf: 'stretch',
+    paddingTop: 0,
+    paddingBottom: spacing.xxl,
   },
   actions: {
     gap: spacing.md,
@@ -205,6 +146,11 @@ const styles = StyleSheet.create({
   },
   actionsLarge: {
     gap: spacing.lg,
+  },
+  actionsLargeScreen: {
+    width: '100%',
+    maxWidth: 360,
+    alignSelf: 'flex-end',
   },
   buttonLarge: {
     minHeight: 68,

@@ -280,6 +280,7 @@ model Course {
   bookings    Booking[]
   reviews     Review[]
   favorites   Favorite[]
+  conversation Conversation?
 
   @@index([courseCode])
   @@index([title])
@@ -400,9 +401,12 @@ model Favorite {
 
 model Conversation {
   id        String   @id @default(uuid()) @db.Uuid
+  courseId  String?  @unique @db.Uuid
+  title     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  course       Course?                   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   participants ConversationParticipant[]
   messages     Message[]
 }

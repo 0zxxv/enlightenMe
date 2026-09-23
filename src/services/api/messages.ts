@@ -36,27 +36,28 @@ export async function replyInConversation(
   body: string,
   recipientId?: string,
 ) {
-  // Prefer recipient send — works on current live API and reuses the conversation.
-  if (recipientId) {
+  try {
+    const result = await apiRequest<ApiSuccess<Message>>(
+      `/messages/conversations/${conversationId}/messages`,
+      {
+        method: 'POST',
+        body: { body },
+        auth: true,
+      },
+    );
+    return result.data;
+  } catch (err) {
+    // Fallback for older APIs that only expose /messages/send.
+    if (!recipientId) throw err;
     const result = await sendMessage({ recipientId, body });
     return result.message;
   }
-
-  const result = await apiRequest<ApiSuccess<Message>>(
-    `/messages/conversations/${conversationId}/messages`,
-    {
-      method: 'POST',
-      body: { body },
-      auth: true,
-    },
-  );
-  return result.data;
 }
 
 export async function openConversation(recipientId: string) {
   const conversations = await listConversations();
-  const existing = conversations.find((c) =>
-    c.participants.some((p) => p.userId === recipientId),
+  const existing = conversations.find(
+    (c) => !c.courseId && c.participants.some((p) => p.userId === recipientId),
   );
   if (existing) return { conversationId: existing.id };
 

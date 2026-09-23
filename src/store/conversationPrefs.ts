@@ -7,6 +7,8 @@ export type ConversationPrefs = {
   archived: string[];
   forcedUnread: string[];
   deleted: string[];
+  /** conversationId → last message id the user opened */
+  seenMessageId: Record<string, string>;
 };
 
 const EMPTY: ConversationPrefs = {
@@ -14,6 +16,7 @@ const EMPTY: ConversationPrefs = {
   archived: [],
   forcedUnread: [],
   deleted: [],
+  seenMessageId: {},
 };
 
 function uniq(ids: string[]) {
@@ -23,16 +26,20 @@ function uniq(ids: string[]) {
 export async function loadConversationPrefs(): Promise<ConversationPrefs> {
   try {
     const raw = await AsyncStorage.getItem(KEY);
-    if (!raw) return { ...EMPTY };
+    if (!raw) return { ...EMPTY, seenMessageId: {} };
     const parsed = JSON.parse(raw) as Partial<ConversationPrefs>;
     return {
       pinned: uniq(parsed.pinned ?? []),
       archived: uniq(parsed.archived ?? []),
       forcedUnread: uniq(parsed.forcedUnread ?? []),
       deleted: uniq(parsed.deleted ?? []),
+      seenMessageId:
+        parsed.seenMessageId && typeof parsed.seenMessageId === 'object'
+          ? { ...parsed.seenMessageId }
+          : {},
     };
   } catch {
-    return { ...EMPTY };
+    return { ...EMPTY, seenMessageId: {} };
   }
 }
 
@@ -44,6 +51,7 @@ export async function saveConversationPrefs(prefs: ConversationPrefs): Promise<v
       archived: uniq(prefs.archived),
       forcedUnread: uniq(prefs.forcedUnread),
       deleted: uniq(prefs.deleted),
+      seenMessageId: prefs.seenMessageId ?? {},
     }),
   );
 }

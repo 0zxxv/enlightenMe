@@ -46,6 +46,7 @@ export const COURSE_SKILL_OPTIONS = [
 export const SERVICE_CATEGORY_CHIPS: {
   id: ServiceType;
   labelKey: 'marketplace.schoolCourses' | 'marketplace.universityCourses' | 'marketplace.trainingSkills';
+  hintKey: 'marketplace.schoolHint' | 'marketplace.universityHint' | 'marketplace.trainingHint';
   icon: IconName;
   tint: string;
   soft: string;
@@ -53,23 +54,26 @@ export const SERVICE_CATEGORY_CHIPS: {
   {
     id: 'SchoolCourse',
     labelKey: 'marketplace.schoolCourses',
+    hintKey: 'marketplace.schoolHint',
+    icon: 'library-outline',
+    tint: '#6B4C9A',
+    soft: '#EDE6F5',
+  },
+  {
+    id: 'UniversityCourse',
+    labelKey: 'marketplace.universityCourses',
+    hintKey: 'marketplace.universityHint',
     icon: 'school-outline',
     tint: '#3A5A8C',
     soft: '#E6EEF7',
   },
   {
-    id: 'UniversityCourse',
-    labelKey: 'marketplace.universityCourses',
-    icon: 'business-outline',
-    tint: '#2F6B4F',
-    soft: '#E4F2EA',
-  },
-  {
     id: 'TrainingSkill',
     labelKey: 'marketplace.trainingSkills',
-    icon: 'sparkles-outline',
-    tint: '#6B4C9A',
-    soft: '#EDE6F5',
+    hintKey: 'marketplace.trainingHint',
+    icon: 'color-palette-outline',
+    tint: '#2F6B4F',
+    soft: '#E4F2EA',
   },
 ];
 

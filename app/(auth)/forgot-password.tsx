@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { BackButton } from '@/components/BackButton';
 import { Button } from '@/components/Button';
 import { TextInput } from '@/components/TextInput';
 import { useTranslation } from '@/i18n';
@@ -36,6 +37,9 @@ export default function ForgotPasswordScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
+      <View style={styles.topBar}>
+        <BackButton onPress={() => router.back()} />
+      </View>
       <View style={styles.content}>
         <Text style={styles.title}>{t('auth.forgotTitle')}</Text>
         <Text style={styles.subtitle}>{t('auth.forgotSubtitle')}</Text>
@@ -47,9 +51,8 @@ export default function ForgotPasswordScreen() {
           onChangeText={setEmail}
           error={error}
         />
-        {sent ? <Text style={styles.success}>{t('auth.resetSent')}</Text> : null}
+        {sent ? <Text style={styles.sent}>{t('auth.resetSent')}</Text> : null}
         <Button title={t('auth.sendReset')} onPress={onSubmit} loading={loading} />
-        <Button title={t('common.back')} variant="ghost" onPress={() => router.back()} />
       </View>
     </SafeAreaView>
   );
@@ -57,8 +60,12 @@ export default function ForgotPasswordScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
+  topBar: {
+    paddingHorizontal: spacing.xxl,
+    paddingTop: spacing.sm,
+  },
   content: { padding: spacing.xxl, gap: spacing.lg },
   title: { ...typography.heading, color: colors.text },
   subtitle: { ...typography.body, color: colors.textSecondary },
-  success: { ...typography.body, color: colors.success },
+  sent: { ...typography.body, color: colors.success },
 });

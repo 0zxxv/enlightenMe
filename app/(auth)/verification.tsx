@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { BackButton } from '@/components/BackButton';
 import { Button } from '@/components/Button';
 import { TextInput } from '@/components/TextInput';
 import { useTranslation } from '@/i18n';
@@ -14,6 +15,9 @@ export default function VerificationScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
+      <View style={styles.topBar}>
+        <BackButton onPress={() => router.back()} />
+      </View>
       <View style={styles.content}>
         <Text style={styles.title}>{t('auth.verificationTitle')}</Text>
         <Text style={styles.subtitle}>{t('auth.verificationSubtitle')}</Text>
@@ -31,6 +35,10 @@ export default function VerificationScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
+  topBar: {
+    paddingHorizontal: spacing.xxl,
+    paddingTop: spacing.sm,
+  },
   content: { padding: spacing.xxl, gap: spacing.lg },
   title: { ...typography.heading, color: colors.text },
   subtitle: { ...typography.body, color: colors.textSecondary },

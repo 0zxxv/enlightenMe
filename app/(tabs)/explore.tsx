@@ -5,6 +5,7 @@ import {
   FlatList,
   Pressable,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -20,13 +21,11 @@ import { EmptyState } from '@/components/EmptyState';
 import { ErrorState } from '@/components/ErrorState';
 import { InstituteCard } from '@/components/InstituteCard';
 import { LoadingState } from '@/components/LoadingState';
-import { Button } from '@/components/Button';
-import { Chip } from '@/components/Chip';
-import { Modal } from '@/components/Modal';
+import { BottomSheet } from '@/components/BottomSheet';
 import { SearchBar } from '@/components/SearchBar';
 import { SectionHeader } from '@/components/SectionHeader';
 import { TutorCard } from '@/components/TutorCard';
-import { SERVICE_CATEGORY_CHIPS } from '@/constants/catalog';
+import { POPULAR_SUBJECTS, SERVICE_CATEGORY_CHIPS } from '@/constants/catalog';
 import { normalizeServiceType, providersForService, type ServiceType } from '@/domain/marketplace';
 import { useCourses } from '@/features/courses/hooks';
 import { useInstitutes } from '@/features/institutes/hooks';
@@ -37,6 +36,7 @@ import { useTranslation } from '@/i18n';
 import { colors, radius, shadows, spacing, typography } from '@/theme';
 import type { Course, CourseFormat, Institute, Tutor } from '@/types/models';
 import { yogaDirection } from '@/utils/rtl';
+import { useRouter } from 'expo-router';
 
 type ResultTab = 'services' | 'providers';
 type ListRow =
@@ -48,17 +48,49 @@ const SEGMENT_PAD = 4;
 
 type FormatFilter = 'all' | CourseFormat;
 type SortOption = 'default' | 'priceAsc' | 'priceDesc' | 'rating';
+type SubjectId = (typeof POPULAR_SUBJECTS)[number]['id'];
 
 function coursePrice(course: Course): number {
   const raw = course.priceDecimal;
   return typeof raw === 'number' ? raw : Number.parseFloat(String(raw)) || 0;
 }
 
+function courseMatchesSubject(course: Course, subjectId: SubjectId): boolean {
+  const subject = POPULAR_SUBJECTS.find((item) => item.id === subjectId);
+  if (!subject) return true;
+  const hay = [
+    course.title,
+    course.titleAr,
+    course.skillCategory,
+    course.major,
+    course.level,
+    course.courseCode,
+    course.subject?.nameEn,
+    course.subject?.nameAr,
+    course.category?.nameEn,
+    course.category?.nameAr,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+  return (
+    hay.includes(subject.en.toLowerCase()) ||
+    hay.includes(subject.ar) ||
+    hay.includes(subject.id.toLowerCase())
+  );
+}
+
+function toggleItem<T extends string>(list: T[], id: T): T[] {
+  return list.includes(id) ? list.filter((item) => item !== id) : [...list, id];
+}
+
 export default function ExploreScreen() {
-  const { t, isRTL } = useTranslation();
+  const { t, isRTL, language } = useTranslation();
+  const router = useRouter();
   const layout = useLayout();
   const params = useLocalSearchParams<{
     q?: string;
+    subject?: string;
     serviceType?: string;
     type?: string;
     result?: string;
@@ -66,15 +98,18 @@ export default function ExploreScreen() {
   }>();
 
   const [query, setQuery] = useState(params.q ?? '');
-  const [serviceType, setServiceType] = useState<ServiceType | undefined>(() => {
+  const [serviceTypes, setServiceTypes] = useState<ServiceType[]>(() => {
     const raw = params.serviceType ?? params.type;
-    return raw ? normalizeServiceType(String(raw)) ?? undefined : undefined;
+    const next = raw ? normalizeServiceType(String(raw)) : null;
+    return next ? [next] : [];
   });
   const [formatFilter, setFormatFilter] = useState<FormatFilter>('all');
   const [sortBy, setSortBy] = useState<SortOption>('default');
+  const [subjectIds, setSubjectIds] = useState<SubjectId[]>([]);
   const [filterOpen, setFilterOpen] = useState(false);
   const [draftFormat, setDraftFormat] = useState<FormatFilter>('all');
   const [draftSort, setDraftSort] = useState<SortOption>('default');
+  const [draftSubjectIds, setDraftSubjectIds] = useState<SubjectId[]>([]);
   const [resultTab, setResultTab] = useState<ResultTab>(() => {
     if (params.result === 'providers' || params.tab === 'tutors' || params.tab === 'institutes') {
       return 'providers';
@@ -89,16 +124,35 @@ export default function ExploreScreen() {
     : (['services', 'providers'] as const);
 
   useEffect(() => {
-    if (typeof params.q === 'string') setQuery(params.q);
+    if (typeof params.q === 'string') {
+      setQuery(params.q);
+      const match = POPULAR_SUBJECTS.find(
+        (s) =>
+          s.en.toLowerCase() === params.q!.toLowerCase() ||
+          s.ar === params.q ||
+          s.id === params.q!.toLowerCase(),
+      );
+      if (match) {
+        setSubjectIds((prev) => (prev.includes(match.id) ? prev : [...prev, match.id]));
+      }
+    }
+    if (typeof params.subject === 'string') {
+      const match = POPULAR_SUBJECTS.find((s) => s.id === params.subject);
+      if (match) {
+        setSubjectIds((prev) => (prev.includes(match.id) ? prev : [...prev, match.id]));
+      }
+    }
     const raw = params.serviceType ?? params.type;
     if (raw) {
       const next = normalizeServiceType(String(raw));
-      if (next) setServiceType(next);
+      if (next) {
+        setServiceTypes((prev) => (prev.includes(next) ? prev : [...prev, next]));
+      }
     }
     if (params.result === 'providers' || params.tab === 'tutors' || params.tab === 'institutes') {
       setResultTab('providers');
     }
-  }, [params.q, params.serviceType, params.type, params.result, params.tab]);
+  }, [params.q, params.subject, params.serviceType, params.type, params.result, params.tab]);
 
   useEffect(() => {
     const order = isRTL
@@ -121,11 +175,18 @@ export default function ExploreScreen() {
     };
   });
 
-  const allowedProviders = serviceType ? providersForService(serviceType) : [];
+  const allowedProviders = useMemo(() => {
+    if (!serviceTypes.length) return [];
+    const set = new Set<ReturnType<typeof providersForService>[number]>();
+    serviceTypes.forEach((id) => {
+      providersForService(id).forEach((p) => set.add(p));
+    });
+    return Array.from(set);
+  }, [serviceTypes]);
 
   const coursesQuery = useCourses({
     q: query || undefined,
-    serviceType,
+    serviceType: serviceTypes.length === 1 ? serviceTypes[0] : undefined,
     pageSize: layout.courseColumns * 4,
   });
 
@@ -158,8 +219,14 @@ export default function ExploreScreen() {
   const coursesRaw = coursesQuery.data?.data ?? [];
   const courses = useMemo(() => {
     let list = [...coursesRaw];
+    if (serviceTypes.length) {
+      list = list.filter((c) => serviceTypes.includes(c.serviceType));
+    }
     if (formatFilter !== 'all') {
       list = list.filter((c) => c.format === formatFilter);
+    }
+    if (subjectIds.length) {
+      list = list.filter((c) => subjectIds.some((id) => courseMatchesSubject(c, id)));
     }
     if (sortBy === 'priceAsc') {
       list.sort((a, b) => coursePrice(a) - coursePrice(b));
@@ -169,7 +236,7 @@ export default function ExploreScreen() {
       list.sort((a, b) => (b.ratingAvg ?? 0) - (a.ratingAvg ?? 0));
     }
     return list;
-  }, [coursesRaw, formatFilter, sortBy]);
+  }, [coursesRaw, formatFilter, serviceTypes, sortBy, subjectIds]);
   const tutors = tutorsQuery.data?.data ?? [];
   const institutes = institutesQuery.data?.data ?? [];
 
@@ -179,10 +246,10 @@ export default function ExploreScreen() {
     }
     const rows: ListRow[] = [];
     const showTeachers =
-      !serviceType ||
+      !serviceTypes.length ||
       allowedProviders.includes('Teacher') ||
       allowedProviders.includes('Trainer');
-    const showInstitutes = !serviceType || allowedProviders.includes('Institute');
+    const showInstitutes = !serviceTypes.length || allowedProviders.includes('Institute');
 
     if (showTeachers) {
       tutors.forEach((item) => rows.push({ kind: 'tutor', item }));
@@ -191,37 +258,26 @@ export default function ExploreScreen() {
       institutes.forEach((item) => rows.push({ kind: 'institute', item }));
     }
     return rows;
-  }, [allowedProviders, courses, institutes, resultTab, serviceType, tutors]);
+  }, [allowedProviders, courses, institutes, resultTab, serviceTypes, tutors]);
 
   const openFilters = () => {
     setDraftFormat(formatFilter);
     setDraftSort(sortBy);
+    setDraftSubjectIds(subjectIds);
     setFilterOpen(true);
   };
 
   const applyFilters = () => {
     setFormatFilter(draftFormat);
     setSortBy(draftSort);
+    setSubjectIds(draftSubjectIds);
     setFilterOpen(false);
   };
 
   const clearFilters = () => {
     setDraftFormat('all');
     setDraftSort('default');
-  };
-
-  const formatLabel = (value: FormatFilter) => {
-    if (value === 'all') return t('explore.all');
-    if (value === 'Online') return t('common.online');
-    if (value === 'InPerson') return t('common.inPerson');
-    return t('common.hybrid');
-  };
-
-  const sortLabel = (value: SortOption) => {
-    if (value === 'default') return t('explore.sortDefault');
-    if (value === 'priceAsc') return t('explore.sortPriceLow');
-    if (value === 'priceDesc') return t('explore.sortPriceHigh');
-    return t('explore.sortRating');
+    setDraftSubjectIds([]);
   };
 
   const courseGap = spacing.md;
@@ -259,13 +315,13 @@ export default function ExploreScreen() {
       <Text style={[styles.sectionLabel, writing]}>{t('home.whatToLearn')}</Text>
       <View style={styles.categoryRow}>
         {SERVICE_CATEGORY_CHIPS.map((chip) => {
-          const selected = serviceType === chip.id;
+          const selected = serviceTypes.includes(chip.id);
           return (
             <Pressable
               key={chip.id}
               style={styles.categoryItem}
               onPress={() => {
-                setServiceType((prev) => (prev === chip.id ? undefined : chip.id));
+                setServiceTypes((prev) => toggleItem(prev, chip.id));
                 setResultTab('services');
               }}
             >
@@ -285,6 +341,44 @@ export default function ExploreScreen() {
           );
         })}
       </View>
+
+      <SectionHeader
+        title={t('home.popularSubjects')}
+        actionLabel={t('common.seeAll')}
+        onAction={() => router.push('/subjects')}
+      />
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.subjectStrip}
+      >
+        {POPULAR_SUBJECTS.map((subject) => {
+          const selected = subjectIds.includes(subject.id);
+          return (
+            <Pressable
+              key={subject.id}
+              style={styles.subjectItem}
+              onPress={() => setSubjectIds((prev) => toggleItem(prev, subject.id))}
+            >
+              <View
+                style={[
+                  styles.subjectIcon,
+                  { backgroundColor: subject.soft },
+                  selected && styles.subjectIconSelected,
+                ]}
+              >
+                <Ionicons name={subject.icon} size={22} color={subject.tint} />
+              </View>
+              <Text
+                style={[styles.subjectLabel, selected && styles.subjectLabelSelected]}
+                numberOfLines={1}
+              >
+                {language === 'ar' ? subject.ar : subject.en}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
 
       <View
         style={[styles.segments, yogaDirection(false)]}
@@ -391,38 +485,224 @@ export default function ExploreScreen() {
         />
       </View>
 
-      <Modal
-        visible={filterOpen}
-        title={t('explore.filters')}
-        onClose={() => setFilterOpen(false)}
-      >
-        <Text style={styles.filterSection}>{t('explore.format')}</Text>
-        <View style={styles.filterChips}>
-          {(['all', 'Online', 'InPerson', 'Hybrid'] as FormatFilter[]).map((value) => (
-            <Chip
-              key={value}
-              label={formatLabel(value)}
-              selected={draftFormat === value}
-              onPress={() => setDraftFormat(value)}
+      <BottomSheet visible={filterOpen} onClose={() => setFilterOpen(false)}>
+        <View style={styles.filterHeader}>
+          <View style={styles.filterHeaderCopy}>
+            <Text style={styles.filterTitle}>{t('explore.filters')}</Text>
+            <Text style={styles.filterSubtitle}>{t('explore.filtersSubtitle')}</Text>
+          </View>
+          <Pressable
+            style={styles.filterClose}
+            onPress={() => setFilterOpen(false)}
+            hitSlop={8}
+            accessibilityLabel={t('common.cancel')}
+          >
+            <Ionicons name="close" size={18} color={colors.primary} />
+          </Pressable>
+        </View>
+
+        <View style={styles.filterBlock}>
+          <View style={styles.filterBlockHead}>
+            <View style={[styles.filterBlockIcon, { backgroundColor: colors.lavenderSoft }]}>
+              <Ionicons name="book-outline" size={16} color={colors.primary} />
+            </View>
+            <View style={styles.filterBlockCopy}>
+              <Text style={styles.filterBlockTitle}>{t('explore.subject')}</Text>
+              <Text style={styles.filterBlockHint}>{t('explore.subjectHint')}</Text>
+            </View>
+            <Pressable
+              style={styles.seeAllLink}
+              onPress={() => {
+                setFilterOpen(false);
+                router.push('/subjects');
+              }}
+            >
+              <Text style={styles.seeAllText}>{t('common.seeAll')}</Text>
+              <Ionicons
+                name={isRTL ? 'chevron-back' : 'chevron-forward'}
+                size={14}
+                color={colors.primary}
+              />
+            </Pressable>
+          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filterChipRow}
+          >
+            <Pressable
+              onPress={() => setDraftSubjectIds([])}
+              style={[styles.optionChip, draftSubjectIds.length === 0 && styles.optionChipActive]}
+            >
+              <Text
+                style={[
+                  styles.optionChipText,
+                  draftSubjectIds.length === 0 && styles.optionChipTextActive,
+                ]}
+              >
+                {t('explore.all')}
+              </Text>
+            </Pressable>
+            {POPULAR_SUBJECTS.map((subject) => {
+              const active = draftSubjectIds.includes(subject.id);
+              return (
+                <Pressable
+                  key={subject.id}
+                  onPress={() => setDraftSubjectIds((prev) => toggleItem(prev, subject.id))}
+                  style={[styles.optionChip, active && styles.optionChipActive]}
+                >
+                  <Ionicons
+                    name={subject.icon}
+                    size={14}
+                    color={active ? colors.white : colors.textMuted}
+                  />
+                  <Text
+                    style={[styles.optionChipText, active && styles.optionChipTextActive]}
+                  >
+                    {language === 'ar' ? subject.ar : subject.en}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+
+        <View style={styles.filterBlock}>
+          <View style={styles.filterBlockHead}>
+            <View style={[styles.filterBlockIcon, { backgroundColor: colors.infoSoft }]}>
+              <Ionicons name="desktop-outline" size={16} color={colors.info} />
+            </View>
+            <View style={styles.filterBlockCopy}>
+              <Text style={styles.filterBlockTitle}>{t('explore.format')}</Text>
+              <Text style={styles.filterBlockHint}>{t('explore.formatHint')}</Text>
+            </View>
+          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filterChipRow}
+          >
+            {(
+              [
+                { id: 'all' as const, label: t('explore.all'), icon: 'apps-outline' as const },
+                {
+                  id: 'Online' as const,
+                  label: t('common.online'),
+                  icon: 'laptop-outline' as const,
+                },
+                {
+                  id: 'InPerson' as const,
+                  label: t('common.inPerson'),
+                  icon: 'people-outline' as const,
+                },
+                {
+                  id: 'Hybrid' as const,
+                  label: t('common.hybrid'),
+                  icon: 'business-outline' as const,
+                },
+              ] as const
+            ).map((item) => {
+              const active = draftFormat === item.id;
+              return (
+                <Pressable
+                  key={item.id}
+                  onPress={() => setDraftFormat(item.id)}
+                  style={[styles.optionChip, active && styles.optionChipActive]}
+                >
+                  <Ionicons
+                    name={item.icon}
+                    size={14}
+                    color={active ? colors.white : colors.textMuted}
+                  />
+                  <Text
+                    style={[styles.optionChipText, active && styles.optionChipTextActive]}
+                  >
+                    {item.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+
+        <View style={styles.filterBlock}>
+          <View style={styles.filterBlockHead}>
+            <View style={[styles.filterBlockIcon, { backgroundColor: '#F7E8EE' }]}>
+              <Ionicons name="swap-vertical-outline" size={16} color="#A34A6A" />
+            </View>
+            <View style={styles.filterBlockCopy}>
+              <Text style={styles.filterBlockTitle}>{t('explore.sort')}</Text>
+              <Text style={styles.filterBlockHint}>{t('explore.sortHint')}</Text>
+            </View>
+          </View>
+          <View style={styles.sortGrid}>
+            {(
+              [
+                {
+                  id: 'default' as const,
+                  label: t('explore.sortDefault'),
+                  icon: 'bar-chart-outline' as const,
+                },
+                {
+                  id: 'priceAsc' as const,
+                  label: t('explore.sortPriceLow'),
+                  icon: 'pricetag-outline' as const,
+                },
+                {
+                  id: 'priceDesc' as const,
+                  label: t('explore.sortPriceHigh'),
+                  icon: 'pricetag-outline' as const,
+                },
+                {
+                  id: 'rating' as const,
+                  label: t('explore.sortRating'),
+                  icon: 'star-outline' as const,
+                },
+              ] as const
+            ).map((item) => {
+              const active = draftSort === item.id;
+              return (
+                <Pressable
+                  key={item.id}
+                  onPress={() => setDraftSort(item.id)}
+                  style={[styles.sortCard, active && styles.sortCardActive]}
+                >
+                  <View style={styles.sortCardLeft}>
+                    <Ionicons
+                      name={item.icon}
+                      size={18}
+                      color={active ? colors.primary : colors.textMuted}
+                    />
+                    <Text
+                      style={[styles.sortCardText, active && styles.sortCardTextActive]}
+                      numberOfLines={2}
+                    >
+                      {item.label}
+                    </Text>
+                  </View>
+                  <View style={[styles.radio, active && styles.radioActive]}>
+                    {active ? <View style={styles.radioDot} /> : null}
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+
+        <View style={styles.filterFooter}>
+          <Pressable style={styles.clearBtn} onPress={clearFilters}>
+            <Text style={styles.clearBtnText}>{t('explore.clearFilters')}</Text>
+          </Pressable>
+          <Pressable style={styles.applyBtn} onPress={applyFilters}>
+            <Text style={styles.applyBtnText}>{t('explore.applyFilters')}</Text>
+            <Ionicons
+              name={isRTL ? 'arrow-back' : 'arrow-forward'}
+              size={16}
+              color={colors.white}
             />
-          ))}
+          </Pressable>
         </View>
-        <Text style={styles.filterSection}>{t('explore.sort')}</Text>
-        <View style={styles.filterChips}>
-          {(['default', 'priceAsc', 'priceDesc', 'rating'] as SortOption[]).map((value) => (
-            <Chip
-              key={value}
-              label={sortLabel(value)}
-              selected={draftSort === value}
-              onPress={() => setDraftSort(value)}
-            />
-          ))}
-        </View>
-        <View style={styles.filterActions}>
-          <Button title={t('explore.clearFilters')} variant="ghost" onPress={clearFilters} />
-          <Button title={t('explore.applyFilters')} onPress={applyFilters} />
-        </View>
-      </Modal>
+      </BottomSheet>
     </SafeAreaView>
   );
 }
@@ -478,6 +758,38 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontWeight: '800',
   },
+  subjectStrip: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    paddingVertical: spacing.xs,
+  },
+  subjectItem: {
+    alignItems: 'center',
+    gap: spacing.sm,
+    width: 76,
+  },
+  subjectIcon: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  subjectIconSelected: {
+    borderWidth: 2.5,
+    borderColor: colors.primary,
+  },
+  subjectLabel: {
+    ...typography.caption,
+    color: colors.text,
+    fontWeight: '600',
+    fontSize: 11,
+    textAlign: 'center',
+  },
+  subjectLabelSelected: {
+    color: colors.primary,
+    fontWeight: '800',
+  },
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -495,20 +807,191 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     ...shadows.sm,
   },
-  filterSection: {
+  filterHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+    marginBottom: spacing.xs,
+  },
+  filterHeaderCopy: { flex: 1, gap: 4 },
+  filterTitle: {
+    ...typography.heading,
+    color: colors.primary,
+    fontSize: 24,
+    lineHeight: 30,
+  },
+  filterSubtitle: {
+    ...typography.caption,
+    color: colors.textMuted,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  filterClose: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.beige,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterBlock: { gap: spacing.md },
+  filterBlockHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  filterBlockIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterBlockCopy: { flex: 1, gap: 2 },
+  filterBlockTitle: {
+    ...typography.body,
+    color: colors.text,
+    fontWeight: '700',
+    fontSize: 15,
+  },
+  filterBlockHint: {
+    ...typography.caption,
+    color: colors.textMuted,
+    fontSize: 12,
+  },
+  seeAllLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  seeAllText: {
+    ...typography.caption,
+    color: colors.primary,
+    fontWeight: '700',
+  },
+  filterChipRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    paddingVertical: 2,
+  },
+  optionChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.full,
+    backgroundColor: colors.white,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+  },
+  optionChipActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  optionChipText: {
     ...typography.caption,
     color: colors.textSecondary,
     fontWeight: '700',
-    marginTop: spacing.xs,
   },
-  filterChips: {
+  optionChipTextActive: {
+    color: colors.white,
+  },
+  sortGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
   },
-  filterActions: {
+  sortCard: {
+    width: '48%',
+    flexGrow: 1,
+    minWidth: '46%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+    backgroundColor: colors.white,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    borderRadius: radius.xl,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    minHeight: 64,
+  },
+  sortCardActive: {
+    backgroundColor: colors.lavenderSoft,
+    borderColor: colors.lavender,
+  },
+  sortCardLeft: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  sortCardText: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    fontWeight: '600',
+    flex: 1,
+    fontSize: 12,
+  },
+  sortCardTextActive: {
+    color: colors.primary,
+    fontWeight: '700',
+  },
+  radio: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 1.5,
+    borderColor: colors.borderStrong,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  radioActive: {
+    borderColor: colors.primary,
+  },
+  radioDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.primary,
+  },
+  filterFooter: {
+    flexDirection: 'row',
     gap: spacing.sm,
     marginTop: spacing.sm,
+  },
+  clearBtn: {
+    flex: 1,
+    minHeight: 52,
+    borderRadius: radius.lg,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    backgroundColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  clearBtnText: {
+    ...typography.button,
+    color: colors.primary,
+    fontWeight: '700',
+  },
+  applyBtn: {
+    flex: 1.2,
+    minHeight: 52,
+    borderRadius: radius.lg,
+    backgroundColor: colors.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+  },
+  applyBtnText: {
+    ...typography.button,
+    color: colors.white,
+    fontWeight: '700',
   },
   segments: {
     flexDirection: 'row',

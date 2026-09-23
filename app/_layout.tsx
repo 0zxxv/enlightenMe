@@ -4,6 +4,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import * as SystemUI from 'expo-system-ui';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect, useState } from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { LoadingState } from '@/components/LoadingState';
 import { RtlShell } from '@/components/RtlShell';
 import { AuthProvider, useAuth } from '@/features/auth/AuthContext';
@@ -91,12 +92,14 @@ function RootNavigator() {
           <Stack.Screen name="dev-mode" />
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="course/[id]" options={{ headerShown: false }} />
-          <Stack.Screen name="tutor/[id]" options={{ headerShown: true, title: '' }} />
-          <Stack.Screen name="institute/[id]" options={{ headerShown: true, title: '' }} />
+          <Stack.Screen name="tutor/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="institute/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="booking/[courseId]" options={{ headerShown: true, title: '' }} />
           <Stack.Screen name="booking/confirmation" options={{ headerShown: true, title: '' }} />
           <Stack.Screen name="booking/detail/[id]" options={{ headerShown: true, title: '' }} />
+          <Stack.Screen name="booking/sessions/[id]" options={{ headerShown: true, title: '' }} />
           <Stack.Screen name="favorites" options={{ headerShown: true, title: '' }} />
+          <Stack.Screen name="continue-learning" options={{ headerShown: true, title: '' }} />
           <Stack.Screen name="subjects" options={{ headerShown: true, title: '' }} />
           <Stack.Screen name="notifications" options={{ headerShown: false }} />
           <Stack.Screen name="conversation/[id]" options={{ headerShown: true, title: '' }} />
@@ -115,11 +118,13 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={client}>
-      <I18nProvider>
-        <AuthProvider>
-          <RootNavigator />
-        </AuthProvider>
-      </I18nProvider>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <I18nProvider>
+          <AuthProvider>
+            <RootNavigator />
+          </AuthProvider>
+        </I18nProvider>
+      </GestureHandlerRootView>
     </QueryClientProvider>
   );
 }

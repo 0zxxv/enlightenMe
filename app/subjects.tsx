@@ -60,7 +60,7 @@ export default function SubjectsScreen() {
               onPress={() =>
                 router.push({
                   pathname: '/(tabs)/explore',
-                  params: { q: language === 'ar' ? subject.ar : subject.en },
+                  params: { subject: subject.id },
                 })
               }
             >

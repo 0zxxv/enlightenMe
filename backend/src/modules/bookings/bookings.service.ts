@@ -1,4 +1,4 @@
-import { BookingStatus, CourseStatus, PaymentStatus, SessionStatus } from '@prisma/client';
+import { BookingStatus, CourseStatus, PaymentStatus, SessionStatus, type Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { AppError } from '../../lib/errors.js';
 import { prisma } from '../../lib/prisma.js';
@@ -66,7 +66,7 @@ export async function createBooking(userId: string, input: z.infer<typeof create
     }
 
     if (existing) {
-      return tx.booking.update({
+      const revived = await tx.booking.update({
         where: { id: existing.id },
         data: {
           status: BookingStatus.Pending,
@@ -75,9 +75,11 @@ export async function createBooking(userId: string, input: z.infer<typeof create
         },
         include: bookingInclude,
       });
+      await ensureCourseGroupMembership(tx, input.courseId, userId);
+      return revived;
     }
 
-    return tx.booking.create({
+    const created = await tx.booking.create({
       data: {
         userId,
         courseId: input.courseId,
@@ -88,7 +90,51 @@ export async function createBooking(userId: string, input: z.infer<typeof create
       },
       include: bookingInclude,
     });
+    await ensureCourseGroupMembership(tx, input.courseId, userId);
+    return created;
   });
+}
+
+async function ensureCourseGroupMembership(
+  tx: Prisma.TransactionClient,
+  courseId: string,
+  userId: string,
+) {
+  const course = await tx.course.findUnique({
+    where: { id: courseId },
+    select: { id: true, title: true, tutorId: true },
+  });
+  if (!course?.tutorId) return;
+
+  let group = await tx.conversation.findUnique({ where: { courseId } });
+  if (!group) {
+    group = await tx.conversation.create({
+      data: {
+        courseId: course.id,
+        title: course.title,
+        participants: {
+          create: [{ userId: course.tutorId }],
+        },
+      },
+    });
+  }
+
+  const memberIds = new Set([course.tutorId, userId]);
+  for (const memberId of memberIds) {
+    await tx.conversationParticipant.upsert({
+      where: {
+        conversationId_userId: {
+          conversationId: group.id,
+          userId: memberId,
+        },
+      },
+      create: {
+        conversationId: group.id,
+        userId: memberId,
+      },
+      update: {},
+    });
+  }
 }
 
 export async function listMyBookings(userId: string) {

@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React, { useMemo } from 'react';
-import { Platform, StyleSheet } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useHasUnreadMessages } from '@/features/messages/useHasUnreadMessages';
 import { useLayout } from '@/hooks/useLayout';
 import { useTranslation } from '@/i18n';
 import { colors, spacing } from '@/theme';
@@ -19,6 +20,7 @@ export default function TabLayout() {
   const { t, isRTL } = useTranslation();
   const { isDesktop } = useLayout();
   const insets = useSafeAreaInsets();
+  const hasUnreadMessages = useHasUnreadMessages();
 
   const useSideNav = Platform.OS === 'web' && isDesktop;
   const bottomPad = Math.max(insets.bottom, 8);
@@ -57,7 +59,6 @@ export default function TabLayout() {
         icon: (focused) => (focused ? 'person' : 'person-outline'),
       },
     ];
-    // Expo Go ignores I18nManager — reverse tab order for a true RTL mirror.
     return isRTL ? [...list].reverse() : list;
   }, [t, isRTL]);
 
@@ -69,6 +70,7 @@ export default function TabLayout() {
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarHideOnKeyboard: true,
+        tabBarShowLabel: false,
         ...(useSideNav
           ? {
               tabBarPosition: 'left' as const,
@@ -76,20 +78,14 @@ export default function TabLayout() {
                 backgroundColor: colors.backgroundElevated,
                 borderRightColor: colors.border,
                 borderTopWidth: 0,
-                width: 220,
+                width: 72,
                 paddingTop: spacing.xl,
                 ...yogaDirection(isRTL),
               },
               tabBarItemStyle: {
-                flexDirection: 'row' as const,
-                justifyContent: 'flex-start' as const,
-                paddingHorizontal: spacing.lg,
-                height: 48,
-              },
-              tabBarLabelStyle: {
-                fontSize: 13,
-                fontWeight: '600' as const,
-                marginLeft: spacing.sm,
+                justifyContent: 'center' as const,
+                alignItems: 'center' as const,
+                height: 52,
               },
             }
           : {
@@ -99,12 +95,8 @@ export default function TabLayout() {
                 borderTopWidth: StyleSheet.hairlineWidth,
                 height: tabBarHeight,
                 paddingBottom: bottomPad,
-                paddingTop: 6,
+                paddingTop: 8,
                 ...yogaDirection(isRTL),
-              },
-              tabBarLabelStyle: {
-                fontSize: 11,
-                fontWeight: '600' as const,
               },
             }),
       }}
@@ -116,12 +108,32 @@ export default function TabLayout() {
           options={{
             title: tab.title,
             href: tab.href,
-            tabBarIcon: ({ color, size, focused }) => (
-              <Ionicons name={tab.icon(focused)} color={color} size={size} />
-            ),
+            tabBarIcon: ({ color, focused }) =>
+              tab.name === 'messages' ? (
+                <View>
+                  <Ionicons name={tab.icon(focused)} color={color} size={24} />
+                  {hasUnreadMessages ? <View style={styles.unreadDot} /> : null}
+                </View>
+              ) : (
+                <Ionicons name={tab.icon(focused)} color={color} size={24} />
+              ),
           }}
         />
       ))}
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  unreadDot: {
+    position: 'absolute',
+    top: -1,
+    right: -3,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.error,
+    borderWidth: 1.5,
+    borderColor: colors.backgroundElevated,
+  },
+});

@@ -81,6 +81,7 @@ export default function TutorDashboardLayout() {
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarHideOnKeyboard: true,
+        tabBarShowLabel: false,
         ...(useSideNav
           ? {
               tabBarPosition: 'left' as const,
@@ -88,20 +89,14 @@ export default function TutorDashboardLayout() {
                 backgroundColor: colors.backgroundElevated,
                 borderRightColor: colors.border,
                 borderTopWidth: 0,
-                width: 220,
+                width: 72,
                 paddingTop: spacing.xl,
                 ...yogaDirection(isRTL),
               },
               tabBarItemStyle: {
-                flexDirection: 'row' as const,
-                justifyContent: 'flex-start' as const,
-                paddingHorizontal: spacing.lg,
-                height: 48,
-              },
-              tabBarLabelStyle: {
-                fontSize: 13,
-                fontWeight: '600' as const,
-                marginLeft: spacing.sm,
+                justifyContent: 'center' as const,
+                alignItems: 'center' as const,
+                height: 52,
               },
             }
           : {
@@ -111,12 +106,8 @@ export default function TutorDashboardLayout() {
                 borderTopWidth: StyleSheet.hairlineWidth,
                 height: tabBarHeight,
                 paddingBottom: bottomPad,
-                paddingTop: 6,
+                paddingTop: 8,
                 ...yogaDirection(isRTL),
-              },
-              tabBarLabelStyle: {
-                fontSize: 11,
-                fontWeight: '600' as const,
               },
             }),
       }}
@@ -132,8 +123,8 @@ export default function TutorDashboardLayout() {
             headerStyle: { backgroundColor: colors.background },
             headerTintColor: colors.primary,
             headerShadowVisible: false,
-            tabBarIcon: ({ color, size, focused }) => (
-              <Ionicons name={tab.icon(focused)} color={color} size={size} />
+            tabBarIcon: ({ color, focused }) => (
+              <Ionicons name={tab.icon(focused)} color={color} size={24} />
             ),
           }}
         />

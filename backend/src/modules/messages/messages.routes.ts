@@ -42,6 +42,7 @@ async function assertBookingRelationship(userA: string, userB: string) {
 async function findDirectConversation(userA: string, userB: string) {
   return prisma.conversation.findFirst({
     where: {
+      courseId: null,
       AND: [
         { participants: { some: { userId: userA } } },
         { participants: { some: { userId: userB } } },

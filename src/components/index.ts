@@ -1,4 +1,5 @@
 export { Avatar } from './Avatar';
+export { BackButton } from './BackButton';
 export { Badge } from './Badge';
 export { BookingCard } from './BookingCard';
 export { BottomSheet } from './BottomSheet';

@@ -5,6 +5,7 @@ import {
   Linking,
   Pressable,
   RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -16,27 +17,72 @@ import Animated, {
 } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BookingCard } from '@/components/BookingCard';
+import { BottomSheet } from '@/components/BottomSheet';
 import { EmptyState } from '@/components/EmptyState';
 import { ErrorState } from '@/components/ErrorState';
 import { LoadingState } from '@/components/LoadingState';
 import { SearchBar } from '@/components/SearchBar';
+import { POPULAR_SUBJECTS, SERVICE_CATEGORY_CHIPS } from '@/constants/catalog';
 import { useMyBookings } from '@/features/bookings/hooks';
 import { useRefresh } from '@/hooks/useRefresh';
 import { useTranslation } from '@/i18n';
 import { colors, radius, shadows, spacing, typography } from '@/theme';
+import type { BookingStatus, Course, CourseFormat, ServiceType } from '@/types/models';
 import { courseTitle, fullName } from '@/utils/format';
 import { yogaDirection } from '@/utils/rtl';
 
 type Segment = 'upcoming' | 'past';
+type StatusFilter = 'all' | BookingStatus;
+type FormatFilter = 'all' | CourseFormat;
+type SubjectId = (typeof POPULAR_SUBJECTS)[number]['id'];
 
 const PAST_STATUSES = new Set(['Completed', 'Cancelled', 'Refunded']);
 const SEGMENT_PAD = 4;
+
+function toggleItem<T extends string>(list: T[], id: T): T[] {
+  return list.includes(id) ? list.filter((item) => item !== id) : [...list, id];
+}
+
+function courseMatchesSubject(course: Course | undefined, subjectId: SubjectId): boolean {
+  if (!course) return false;
+  const subject = POPULAR_SUBJECTS.find((item) => item.id === subjectId);
+  if (!subject) return true;
+  const hay = [
+    course.title,
+    course.titleAr,
+    course.skillCategory,
+    course.major,
+    course.level,
+    course.courseCode,
+    course.subject?.nameEn,
+    course.subject?.nameAr,
+    course.category?.nameEn,
+    course.category?.nameAr,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+  return (
+    hay.includes(subject.en.toLowerCase()) ||
+    hay.includes(subject.ar) ||
+    hay.includes(subject.id.toLowerCase())
+  );
+}
 
 export default function BookingsScreen() {
   const { t, language, isRTL } = useTranslation();
   const [segment, setSegment] = useState<Segment>('upcoming');
   const [query, setQuery] = useState('');
   const [trackWidth, setTrackWidth] = useState(0);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [formatFilter, setFormatFilter] = useState<FormatFilter>('all');
+  const [subjectIds, setSubjectIds] = useState<SubjectId[]>([]);
+  const [serviceTypes, setServiceTypes] = useState<ServiceType[]>([]);
+  const [draftStatus, setDraftStatus] = useState<StatusFilter>('all');
+  const [draftFormat, setDraftFormat] = useState<FormatFilter>('all');
+  const [draftSubjectIds, setDraftSubjectIds] = useState<SubjectId[]>([]);
+  const [draftServiceTypes, setDraftServiceTypes] = useState<ServiceType[]>([]);
   const bookingsQuery = useMyBookings();
   const { refreshing, onRefresh } = useRefresh(async () => {
     await bookingsQuery.refetch();
@@ -68,16 +114,58 @@ export default function BookingsScreen() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const list = (bookingsQuery.data ?? []).filter((b) => {
+    return (bookingsQuery.data ?? []).filter((b) => {
       const isPast = PAST_STATUSES.has(b.status);
       if (segment === 'past' ? !isPast : isPast) return false;
+      if (statusFilter !== 'all' && b.status !== statusFilter) return false;
+      if (formatFilter !== 'all' && b.course?.format !== formatFilter) return false;
+      if (serviceTypes.length && (!b.course || !serviceTypes.includes(b.course.serviceType))) {
+        return false;
+      }
+      if (
+        subjectIds.length &&
+        !subjectIds.some((subjectId) => courseMatchesSubject(b.course, subjectId))
+      ) {
+        return false;
+      }
       if (!q) return true;
       const title = b.course ? courseTitle(b.course, language).toLowerCase() : '';
       const tutor = fullName(b.course?.tutor?.firstName, b.course?.tutor?.lastName).toLowerCase();
       return title.includes(q) || tutor.includes(q) || b.status.toLowerCase().includes(q);
     });
-    return list;
-  }, [bookingsQuery.data, language, query, segment]);
+  }, [
+    bookingsQuery.data,
+    formatFilter,
+    language,
+    query,
+    segment,
+    serviceTypes,
+    statusFilter,
+    subjectIds,
+  ]);
+
+  const openFilters = () => {
+    setDraftStatus(statusFilter);
+    setDraftFormat(formatFilter);
+    setDraftSubjectIds(subjectIds);
+    setDraftServiceTypes(serviceTypes);
+    setFilterOpen(true);
+  };
+
+  const applyFilters = () => {
+    setStatusFilter(draftStatus);
+    setFormatFilter(draftFormat);
+    setSubjectIds(draftSubjectIds);
+    setServiceTypes(draftServiceTypes);
+    setFilterOpen(false);
+  };
+
+  const clearFilters = () => {
+    setDraftStatus('all');
+    setDraftFormat('all');
+    setDraftSubjectIds([]);
+    setDraftServiceTypes([]);
+  };
 
   const listHeader = (
     <View style={styles.headerBlock}>
@@ -121,7 +209,7 @@ export default function BookingsScreen() {
           placeholder={t('bookings.searchPlaceholder')}
           style={styles.search}
         />
-        <Pressable style={styles.filterBtn} hitSlop={4}>
+        <Pressable style={styles.filterBtn} hitSlop={4} onPress={openFilters}>
           <Ionicons name="options-outline" size={20} color={colors.primary} />
         </Pressable>
       </View>
@@ -185,6 +273,244 @@ export default function BookingsScreen() {
           />
         ) : null}
       </SafeAreaView>
+
+      <BottomSheet visible={filterOpen} onClose={() => setFilterOpen(false)}>
+        <View style={styles.filterHeader}>
+          <View style={styles.filterHeaderCopy}>
+            <Text style={styles.filterTitle}>{t('bookings.filters')}</Text>
+            <Text style={styles.filterSubtitle}>{t('bookings.filtersSubtitle')}</Text>
+          </View>
+          <Pressable
+            style={styles.filterClose}
+            onPress={() => setFilterOpen(false)}
+            hitSlop={8}
+            accessibilityLabel={t('common.cancel')}
+          >
+            <Ionicons name="close" size={18} color={colors.primary} />
+          </Pressable>
+        </View>
+
+        <View style={styles.filterBlock}>
+          <View style={styles.filterBlockHead}>
+            <View style={[styles.filterBlockIcon, { backgroundColor: colors.lavenderSoft }]}>
+              <Ionicons name="flag-outline" size={16} color={colors.primary} />
+            </View>
+            <View style={styles.filterBlockCopy}>
+              <Text style={styles.filterBlockTitle}>{t('bookings.filterStatus')}</Text>
+              <Text style={styles.filterBlockHint}>{t('bookings.filterStatusHint')}</Text>
+            </View>
+          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filterChipRow}
+          >
+            {(
+              [
+                { id: 'all' as const, label: t('bookings.statusAll') },
+                { id: 'Pending' as const, label: t('bookings.statusPending') },
+                { id: 'Confirmed' as const, label: t('bookings.statusConfirmed') },
+                { id: 'Completed' as const, label: t('bookings.statusCompleted') },
+                { id: 'Cancelled' as const, label: t('bookings.statusCancelled') },
+              ] as const
+            ).map((item) => {
+              const active = draftStatus === item.id;
+              return (
+                <Pressable
+                  key={item.id}
+                  onPress={() => setDraftStatus(item.id)}
+                  style={[styles.optionChip, active && styles.optionChipActive]}
+                >
+                  <Text
+                    style={[styles.optionChipText, active && styles.optionChipTextActive]}
+                  >
+                    {item.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+
+        <View style={styles.filterBlock}>
+          <View style={styles.filterBlockHead}>
+            <View style={[styles.filterBlockIcon, { backgroundColor: colors.infoSoft }]}>
+              <Ionicons name="desktop-outline" size={16} color={colors.info} />
+            </View>
+            <View style={styles.filterBlockCopy}>
+              <Text style={styles.filterBlockTitle}>{t('bookings.filterFormat')}</Text>
+              <Text style={styles.filterBlockHint}>{t('bookings.filterFormatHint')}</Text>
+            </View>
+          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filterChipRow}
+          >
+            {(
+              [
+                { id: 'all' as const, label: t('explore.all'), icon: 'apps-outline' as const },
+                {
+                  id: 'Online' as const,
+                  label: t('common.online'),
+                  icon: 'laptop-outline' as const,
+                },
+                {
+                  id: 'InPerson' as const,
+                  label: t('common.inPerson'),
+                  icon: 'people-outline' as const,
+                },
+                {
+                  id: 'Hybrid' as const,
+                  label: t('common.hybrid'),
+                  icon: 'business-outline' as const,
+                },
+              ] as const
+            ).map((item) => {
+              const active = draftFormat === item.id;
+              return (
+                <Pressable
+                  key={item.id}
+                  onPress={() => setDraftFormat(item.id)}
+                  style={[styles.optionChip, active && styles.optionChipActive]}
+                >
+                  <Ionicons
+                    name={item.icon}
+                    size={14}
+                    color={active ? colors.white : colors.textMuted}
+                  />
+                  <Text
+                    style={[styles.optionChipText, active && styles.optionChipTextActive]}
+                  >
+                    {item.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+
+        <View style={styles.filterBlock}>
+          <View style={styles.filterBlockHead}>
+            <View style={[styles.filterBlockIcon, { backgroundColor: colors.lavenderSoft }]}>
+              <Ionicons name="book-outline" size={16} color={colors.primary} />
+            </View>
+            <View style={styles.filterBlockCopy}>
+              <Text style={styles.filterBlockTitle}>{t('explore.subject')}</Text>
+              <Text style={styles.filterBlockHint}>{t('explore.subjectHint')}</Text>
+            </View>
+          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filterChipRow}
+          >
+            <Pressable
+              onPress={() => setDraftSubjectIds([])}
+              style={[styles.optionChip, draftSubjectIds.length === 0 && styles.optionChipActive]}
+            >
+              <Text
+                style={[
+                  styles.optionChipText,
+                  draftSubjectIds.length === 0 && styles.optionChipTextActive,
+                ]}
+              >
+                {t('explore.all')}
+              </Text>
+            </Pressable>
+            {POPULAR_SUBJECTS.map((subject) => {
+              const active = draftSubjectIds.includes(subject.id);
+              return (
+                <Pressable
+                  key={subject.id}
+                  onPress={() => setDraftSubjectIds((prev) => toggleItem(prev, subject.id))}
+                  style={[styles.optionChip, active && styles.optionChipActive]}
+                >
+                  <Ionicons
+                    name={subject.icon}
+                    size={14}
+                    color={active ? colors.white : colors.textMuted}
+                  />
+                  <Text
+                    style={[styles.optionChipText, active && styles.optionChipTextActive]}
+                  >
+                    {language === 'ar' ? subject.ar : subject.en}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+
+        <View style={styles.filterBlock}>
+          <View style={styles.filterBlockHead}>
+            <View style={[styles.filterBlockIcon, { backgroundColor: colors.successSoft }]}>
+              <Ionicons name="school-outline" size={16} color={colors.success} />
+            </View>
+            <View style={styles.filterBlockCopy}>
+              <Text style={styles.filterBlockTitle}>{t('bookings.filterType')}</Text>
+              <Text style={styles.filterBlockHint}>{t('bookings.filterTypeHint')}</Text>
+            </View>
+          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.filterChipRow}
+          >
+            <Pressable
+              onPress={() => setDraftServiceTypes([])}
+              style={[
+                styles.optionChip,
+                draftServiceTypes.length === 0 && styles.optionChipActive,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.optionChipText,
+                  draftServiceTypes.length === 0 && styles.optionChipTextActive,
+                ]}
+              >
+                {t('explore.all')}
+              </Text>
+            </Pressable>
+            {SERVICE_CATEGORY_CHIPS.map((chip) => {
+              const active = draftServiceTypes.includes(chip.id);
+              return (
+                <Pressable
+                  key={chip.id}
+                  onPress={() => setDraftServiceTypes((prev) => toggleItem(prev, chip.id))}
+                  style={[styles.optionChip, active && styles.optionChipActive]}
+                >
+                  <Ionicons
+                    name={chip.icon}
+                    size={14}
+                    color={active ? colors.white : colors.textMuted}
+                  />
+                  <Text
+                    style={[styles.optionChipText, active && styles.optionChipTextActive]}
+                  >
+                    {t(chip.labelKey)}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+
+        <View style={styles.filterFooter}>
+          <Pressable style={styles.clearBtn} onPress={clearFilters}>
+            <Text style={styles.clearBtnText}>{t('bookings.clearFilters')}</Text>
+          </Pressable>
+          <Pressable style={styles.applyBtn} onPress={applyFilters}>
+            <Text style={styles.applyBtnText}>{t('bookings.applyFilters')}</Text>
+            <Ionicons
+              name={isRTL ? 'arrow-back' : 'arrow-forward'}
+              size={16}
+              color={colors.white}
+            />
+          </Pressable>
+        </View>
+      </BottomSheet>
     </View>
   );
 }
@@ -338,5 +664,121 @@ const styles = StyleSheet.create({
   helpSubtitle: {
     ...typography.caption,
     color: colors.textSecondary,
+  },
+  filterHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+    marginBottom: spacing.xs,
+  },
+  filterHeaderCopy: { flex: 1, gap: 4 },
+  filterTitle: {
+    ...typography.heading,
+    color: colors.primary,
+    fontSize: 24,
+    lineHeight: 30,
+  },
+  filterSubtitle: {
+    ...typography.caption,
+    color: colors.textMuted,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  filterClose: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.beige,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterBlock: { gap: spacing.md },
+  filterBlockHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  filterBlockIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterBlockCopy: { flex: 1, gap: 2 },
+  filterBlockTitle: {
+    ...typography.body,
+    color: colors.text,
+    fontWeight: '700',
+    fontSize: 15,
+  },
+  filterBlockHint: {
+    ...typography.caption,
+    color: colors.textMuted,
+    fontSize: 12,
+  },
+  filterChipRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    paddingVertical: 2,
+  },
+  optionChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.full,
+    backgroundColor: colors.white,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+  },
+  optionChipActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  optionChipText: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    fontWeight: '700',
+  },
+  optionChipTextActive: {
+    color: colors.white,
+  },
+  filterFooter: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  clearBtn: {
+    flex: 1,
+    minHeight: 52,
+    borderRadius: radius.lg,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    backgroundColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  clearBtnText: {
+    ...typography.button,
+    color: colors.primary,
+    fontWeight: '700',
+  },
+  applyBtn: {
+    flex: 1.2,
+    minHeight: 52,
+    borderRadius: radius.lg,
+    backgroundColor: colors.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+  },
+  applyBtnText: {
+    ...typography.button,
+    color: colors.white,
+    fontWeight: '700',
   },
 });

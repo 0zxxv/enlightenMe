@@ -123,14 +123,14 @@ async function main() {
       language: Language.en,
       tutorProfile: {
         create: {
-          bio: 'Computer science tutor specializing in algorithms and school mathematics.',
-          expertise: ['Algorithms', 'Mathematics', 'Data Structures'],
+          bio: 'Computer science tutor specializing in algorithms and school mathematics. Former UoB teaching assistant with 7+ years helping Bahrain students master discrete math, data structures, and exam-ready problem solving. Sessions mix whiteboard walkthroughs, past-paper drills, and weekly progress check-ins.',
+          expertise: ['Algorithms', 'Mathematics', 'Data Structures', 'Discrete Math', 'Exam Prep'],
           providerType: ProviderType.Teacher,
           verificationStatus: VerificationStatus.Verified,
           ratingAvg: 4.8,
-          ratingCount: 12,
-          studentCount: 45,
-          courseCount: 3,
+          ratingCount: 28,
+          studentCount: 86,
+          courseCount: 4,
         },
       },
     },
@@ -148,14 +148,14 @@ async function main() {
       language: Language.en,
       tutorProfile: {
         create: {
-          bio: '3D artist and Blender instructor for beginners and creatives.',
-          expertise: ['Blender', '3D Modeling', 'Rendering'],
+          bio: '3D artist and Blender instructor for beginners and creatives. Portfolio spans product viz, short-film look-dev, and game-ready assets. Classes are project-based: you leave with a rendered scene each week, plus critique notes and downloadable starter files.',
+          expertise: ['Blender', '3D Modeling', 'Rendering', 'Lighting', 'Look Development'],
           providerType: ProviderType.Trainer,
           verificationStatus: VerificationStatus.Verified,
           ratingAvg: 4.9,
-          ratingCount: 8,
-          studentCount: 30,
-          courseCount: 2,
+          ratingCount: 19,
+          studentCount: 54,
+          courseCount: 3,
         },
       },
     },
@@ -173,14 +173,14 @@ async function main() {
       language: Language.en,
       tutorProfile: {
         create: {
-          bio: 'Physics and chemistry tutor for Bahrain secondary school students.',
-          expertise: ['Physics', 'Chemistry', 'Exam Prep'],
+          bio: 'Physics and chemistry tutor for Bahrain secondary school students. Explains tough concepts with everyday examples, then locks them in with graded worksheets. Focus areas: mechanics, electricity, organic chemistry, and ministry exam strategy.',
+          expertise: ['Physics', 'Chemistry', 'Exam Prep', 'Mechanics', 'Organic Chemistry'],
           providerType: ProviderType.Teacher,
           verificationStatus: VerificationStatus.Verified,
           ratingAvg: 4.6,
-          ratingCount: 15,
-          studentCount: 52,
-          courseCount: 2,
+          ratingCount: 33,
+          studentCount: 92,
+          courseCount: 3,
         },
       },
     },
@@ -198,14 +198,14 @@ async function main() {
       language: Language.en,
       tutorProfile: {
         create: {
-          bio: 'English language coach for school and IELTS preparation.',
-          expertise: ['English', 'IELTS', 'Writing'],
+          bio: 'English language coach for school and IELTS preparation. CELTA-certified with a calm, feedback-heavy style. Students practice speaking every session, get annotated writing corrections within 48 hours, and build a personal phrase bank for exams.',
+          expertise: ['English', 'IELTS', 'Writing', 'Speaking', 'Academic English'],
           providerType: ProviderType.Teacher,
           verificationStatus: VerificationStatus.Verified,
           ratingAvg: 4.7,
-          ratingCount: 20,
-          studentCount: 60,
-          courseCount: 2,
+          ratingCount: 41,
+          studentCount: 110,
+          courseCount: 3,
         },
       },
     },
@@ -331,8 +331,9 @@ async function main() {
       title: 'Analysis and Design of Algorithms',
       titleAr: 'تحليل وتصميم الخوارزميات',
       description:
-        'University course covering algorithm analysis, design paradigms, and complexity.',
-      descriptionAr: 'مقرر جامعي يغطي تحليل الخوارزميات ونماذج التصميم والتعقيد.',
+        'University course covering algorithm analysis, design paradigms, and complexity. We work through asymptotic notation, divide-and-conquer, dynamic programming, and classic graph algorithms with weekly coding labs and past ITCS347-style questions. Ideal if you want exam confidence and clearer problem-solving habits.',
+      descriptionAr:
+        'مقرر جامعي يغطي تحليل الخوارزميات ونماذج التصميم والتعقيد. نتدرّب على الترميز المقارب وخوارزميات فرّق تسد والبرمجة الديناميكية ورسوم البيانات مع مختبرات أسبوعية وأسئلة شبيهة بامتحانات ITCS347.',
       categoryId: universityCat.id,
       subjectId: algorithms.id,
       serviceType: ServiceType.UniversityCourse,
@@ -352,13 +353,33 @@ async function main() {
       tutorId: sara.id,
       instituteId: codeLab.id,
       ratingAvg: 4.7,
-      ratingCount: 5,
+      ratingCount: 12,
       curriculum: {
         create: [
-          { order: 1, title: 'Asymptotic Analysis', titleAr: 'التحليل المقارب' },
-          { order: 2, title: 'Divide and Conquer', titleAr: 'فرّق تسد' },
-          { order: 3, title: 'Dynamic Programming', titleAr: 'البرمجة الديناميكية' },
-          { order: 4, title: 'Graph Algorithms', titleAr: 'خوارزميات الرسوم البيانية' },
+          {
+            order: 1,
+            title: 'Asymptotic Analysis',
+            titleAr: 'التحليل المقارب',
+            description: 'Big-O, Theta, and Omega with worked examples from sorting and searching.',
+          },
+          {
+            order: 2,
+            title: 'Divide and Conquer',
+            titleAr: 'فرّق تسد',
+            description: 'Master theorem, merge sort, closest pair, and recurrence trees.',
+          },
+          {
+            order: 3,
+            title: 'Dynamic Programming',
+            titleAr: 'البرمجة الديناميكية',
+            description: 'Memoization vs tabulation: knapsack, LCS, and path problems.',
+          },
+          {
+            order: 4,
+            title: 'Graph Algorithms',
+            titleAr: 'خوارزميات الرسوم البيانية',
+            description: 'BFS/DFS, shortest paths, MSTs, and topological ordering drills.',
+          },
         ],
       },
     },
@@ -368,8 +389,10 @@ async function main() {
     data: {
       title: 'Mathematics — Grade 12',
       titleAr: 'الرياضيات — الصف الثاني عشر',
-      description: 'School mathematics tutoring covering Grade 12 curriculum topics.',
-      descriptionAr: 'دروس خصوصية في رياضيات الصف الثاني عشر.',
+      description:
+        'School mathematics tutoring covering Grade 12 curriculum topics — functions, calculus foundations, probability, and exam technique. Each session ends with a short quiz and a homework set aligned to Bahrain ministry past papers.',
+      descriptionAr:
+        'دروس خصوصية في رياضيات الصف الثاني عشر: الدوال وأساسيات التفاضل والاحتمالات واستراتيجيات الامتحان. كل حصة تنتهي باختبار قصير وواجب مرتبط بأسئلة وزارية.',
       categoryId: school.id,
       subjectId: math.id,
       serviceType: ServiceType.SchoolCourse,
@@ -385,13 +408,29 @@ async function main() {
       tutorId: sara.id,
       instituteId: brightMinds.id,
       ratingAvg: 4.9,
-      ratingCount: 7,
+      ratingCount: 16,
       curriculum: {
         create: [
-          { order: 1, title: 'Functions & Graphs' },
-          { order: 2, title: 'Calculus Foundations' },
-          { order: 3, title: 'Probability' },
-          { order: 4, title: 'Exam Practice' },
+          {
+            order: 1,
+            title: 'Functions & Graphs',
+            description: 'Domain, range, transformations, and sketching common families.',
+          },
+          {
+            order: 2,
+            title: 'Calculus Foundations',
+            description: 'Limits intuition, derivatives, and basic applications to rates of change.',
+          },
+          {
+            order: 3,
+            title: 'Probability',
+            description: 'Counting, conditional probability, and expected value word problems.',
+          },
+          {
+            order: 4,
+            title: 'Exam Practice',
+            description: 'Timed past-paper blocks with marking-scheme walkthroughs.',
+          },
         ],
       },
     },
@@ -402,8 +441,9 @@ async function main() {
       title: 'Blender 3D for Beginners',
       titleAr: 'بلندر ثلاثي الأبعاد للمبتدئين',
       description:
-        'Learn Blender from scratch: interface, modeling, materials, lighting, and rendering.',
-      descriptionAr: 'تعلّم بلندر من الصفر: الواجهة، النمذجة، المواد، الإضاءة، والإخراج.',
+        'Learn Blender from scratch: interface, modeling, materials, lighting, and rendering. Project-based — you build a still-life scene, then a simple character prop, with critique after every milestone. Includes starter kits and recommended add-ons for beginners.',
+      descriptionAr:
+        'تعلّم بلندر من الصفر: الواجهة، النمذجة، المواد، الإضاءة، والإخراج. أسلوب قائم على المشاريع مع مراجعة بعد كل مرحلة، وملفات بداية وإضافات مقترحة للمبتدئين.',
       categoryId: design3d.id,
       subjectId: blender.id,
       serviceType: ServiceType.TrainingSkill,
@@ -418,14 +458,39 @@ async function main() {
       tutorId: zahra.id,
       instituteId: artNest.id,
       ratingAvg: 5,
-      ratingCount: 3,
+      ratingCount: 9,
       curriculum: {
         create: [
-          { order: 1, title: 'Introduction to Blender', titleAr: 'مقدمة' },
-          { order: 2, title: 'Modeling Basics', titleAr: 'أساسيات النمذجة' },
-          { order: 3, title: 'Modifiers and Tools', titleAr: 'المعدّلات والأدوات' },
-          { order: 4, title: 'Materials and Textures', titleAr: 'المواد والملمس' },
-          { order: 5, title: 'Lighting and Rendering', titleAr: 'الإضاءة والإخراج' },
+          {
+            order: 1,
+            title: 'Introduction to Blender',
+            titleAr: 'مقدمة',
+            description: 'Viewport navigation, object mode vs edit mode, and saving habits.',
+          },
+          {
+            order: 2,
+            title: 'Modeling Basics',
+            titleAr: 'أساسيات النمذجة',
+            description: 'Extrude, inset, loop cuts, and clean topology tips.',
+          },
+          {
+            order: 3,
+            title: 'Modifiers and Tools',
+            titleAr: 'المعدّلات والأدوات',
+            description: 'Mirror, subdivision, boolean, and non-destructive workflows.',
+          },
+          {
+            order: 4,
+            title: 'Materials and Textures',
+            titleAr: 'المواد والملمس',
+            description: 'Principled BSDF, UV unwrap basics, and simple procedural textures.',
+          },
+          {
+            order: 5,
+            title: 'Lighting and Rendering',
+            titleAr: 'الإضاءة والإخراج',
+            description: 'Three-point lighting, camera framing, and Cycles vs Eevee export.',
+          },
         ],
       },
     },
@@ -435,8 +500,10 @@ async function main() {
     data: {
       title: 'Physics — Grade 11',
       titleAr: 'الفيزياء — الصف الحادي عشر',
-      description: 'Mechanics, waves, and electricity aligned to the Bahrain Grade 11 syllabus.',
-      descriptionAr: 'ميكانيكا وموجات وكهرباء وفق منهج الصف الحادي عشر في البحرين.',
+      description:
+        'Mechanics, waves, and electricity aligned to the Bahrain Grade 11 syllabus. Lessons alternate concept demos with guided problem sets so you can spot formula mix-ups early. Includes formula sheets and a mid-course mock quiz.',
+      descriptionAr:
+        'ميكانيكا وموجات وكهرباء وفق منهج الصف الحادي عشر في البحرين. نمزج الشرح مع تمارين موجّهة ونقدّم ملخص قوانين واختبارًا منتصف الدورة.',
       categoryId: school.id,
       subjectId: physics.id,
       serviceType: ServiceType.SchoolCourse,
@@ -453,14 +520,14 @@ async function main() {
       tutorId: omar.id,
       instituteId: brightMinds.id,
       ratingAvg: 4.5,
-      ratingCount: 9,
+      ratingCount: 14,
       curriculum: {
         create: [
-          { order: 1, title: 'Kinematics' },
-          { order: 2, title: 'Newton’s Laws' },
-          { order: 3, title: 'Work & Energy' },
-          { order: 4, title: 'Waves' },
-          { order: 5, title: 'Electric Circuits' },
+          { order: 1, title: 'Kinematics', description: 'Displacement, velocity, acceleration graphs.' },
+          { order: 2, title: 'Newton’s Laws', description: 'Free-body diagrams and multi-force problems.' },
+          { order: 3, title: 'Work & Energy', description: 'Conservation, power, and spring energy.' },
+          { order: 4, title: 'Waves', description: 'Wave speed, interference, and sound basics.' },
+          { order: 5, title: 'Electric Circuits', description: 'Ohm’s law, series/parallel, and meters.' },
         ],
       },
     },
@@ -470,8 +537,10 @@ async function main() {
     data: {
       title: 'Chemistry — Grade 12',
       titleAr: 'الكيمياء — الصف الثاني عشر',
-      description: 'Organic chemistry and exam drills for Grade 12 students.',
-      descriptionAr: 'كيمياء عضوية وتمارين امتحانات للصف الثاني عشر.',
+      description:
+        'Organic chemistry and exam drills for Grade 12 students. We map functional groups, walk reaction mechanisms step-by-step, and finish with timed past-paper blocks plus lab safety refreshers.',
+      descriptionAr:
+        'كيمياء عضوية وتمارين امتحانات للصف الثاني عشر. نغطي المجموعات الوظيفية وآليات التفاعلات واختبارات زمنية مع مراجعة سلامة المختبر.',
       categoryId: school.id,
       subjectId: chemistry.id,
       serviceType: ServiceType.SchoolCourse,
@@ -487,13 +556,13 @@ async function main() {
       tutorId: omar.id,
       instituteId: brightMinds.id,
       ratingAvg: 4.4,
-      ratingCount: 6,
+      ratingCount: 11,
       curriculum: {
         create: [
-          { order: 1, title: 'Organic Basics' },
-          { order: 2, title: 'Reaction Mechanisms' },
-          { order: 3, title: 'Lab Skills' },
-          { order: 4, title: 'Past Papers' },
+          { order: 1, title: 'Organic Basics', description: 'Nomenclature, isomers, and functional groups.' },
+          { order: 2, title: 'Reaction Mechanisms', description: 'Substitution, addition, and elimination patterns.' },
+          { order: 3, title: 'Lab Skills', description: 'Titration practice, observations, and error analysis.' },
+          { order: 4, title: 'Past Papers', description: 'Ministry-style papers with mark-scheme coaching.' },
         ],
       },
     },
@@ -503,8 +572,10 @@ async function main() {
     data: {
       title: 'IELTS Speaking & Writing',
       titleAr: 'آيلتس — المحادثة والكتابة',
-      description: 'Targeted IELTS practice for Speaking and Writing bands 6.5+.',
-      descriptionAr: 'تدريب مركّز على المحادثة والكتابة لآيلتس بمستوى 6.5 فأعلى.',
+      description:
+        'Targeted IELTS practice for Speaking and Writing bands 6.5+. Recorded speaking drills, annotated essay feedback within 48 hours, and a full mock in the final week with band estimates.',
+      descriptionAr:
+        'تدريب مركّز على المحادثة والكتابة لآيلتس بمستوى 6.5 فأعلى. تسجيلات محادثة وتصحيح مقالات خلال 48 ساعة واختبار تجريبي في الأسبوع الأخير.',
       categoryId: skills.id,
       subjectId: english.id,
       serviceType: ServiceType.TrainingSkill,
@@ -518,14 +589,14 @@ async function main() {
       status: CourseStatus.Published,
       tutorId: layla.id,
       ratingAvg: 4.8,
-      ratingCount: 14,
+      ratingCount: 22,
       curriculum: {
         create: [
-          { order: 1, title: 'Speaking Part 1–2' },
-          { order: 2, title: 'Speaking Part 3' },
-          { order: 3, title: 'Task 1 Writing' },
-          { order: 4, title: 'Task 2 Essays' },
-          { order: 5, title: 'Mock Exam' },
+          { order: 1, title: 'Speaking Part 1–2', description: 'Fluency warm-ups and cue-card structuring.' },
+          { order: 2, title: 'Speaking Part 3', description: 'Opinion language and extended answers.' },
+          { order: 3, title: 'Task 1 Writing', description: 'Charts, processes, and comparison language.' },
+          { order: 4, title: 'Task 2 Essays', description: 'Thesis clarity, cohesion, and band descriptors.' },
+          { order: 5, title: 'Mock Exam', description: 'Timed speaking + writing with band estimate.' },
         ],
       },
     },
@@ -535,8 +606,10 @@ async function main() {
     data: {
       title: 'Python Programming for Beginners',
       titleAr: 'بايثون للمبتدئين',
-      description: 'Learn Python fundamentals with hands-on exercises and mini projects.',
-      descriptionAr: 'تعلّم أساسيات بايثون بتمارين عملية ومشاريع صغيرة.',
+      description:
+        'Learn Python fundamentals with hands-on exercises and mini projects. We cover variables, control flow, functions, and collections, then build a small CLI app together. Notebooks and solutions are shared after every class.',
+      descriptionAr:
+        'تعلّم أساسيات بايثون بتمارين عملية ومشاريع صغيرة: المتغيرات والتدفق والدوال والمجموعات ثم تطبيق سطر أوامر بسيط مع ملفات حلول بعد كل حصة.',
       categoryId: universityCat.id,
       subjectId: programming.id,
       serviceType: ServiceType.UniversityCourse,
@@ -555,14 +628,14 @@ async function main() {
       tutorId: sara.id,
       instituteId: codeLab.id,
       ratingAvg: 4.6,
-      ratingCount: 10,
+      ratingCount: 18,
       curriculum: {
         create: [
-          { order: 1, title: 'Variables & Types' },
-          { order: 2, title: 'Control Flow' },
-          { order: 3, title: 'Functions' },
-          { order: 4, title: 'Lists & Dicts' },
-          { order: 5, title: 'Mini Project' },
+          { order: 1, title: 'Variables & Types', description: 'Ints, floats, strings, and type casting pitfalls.' },
+          { order: 2, title: 'Control Flow', description: 'if/else, loops, and common off-by-one bugs.' },
+          { order: 3, title: 'Functions', description: 'Parameters, return values, and scope.' },
+          { order: 4, title: 'Lists & Dicts', description: 'Mutability, comprehensions, and nested data.' },
+          { order: 5, title: 'Mini Project', description: 'Build a small CLI tool and present it.' },
         ],
       },
     },
@@ -572,8 +645,10 @@ async function main() {
     data: {
       title: 'English — Grade 10',
       titleAr: 'اللغة الإنجليزية — الصف العاشر',
-      description: 'Reading comprehension, grammar, and writing for Grade 10.',
-      descriptionAr: 'فهم المقروء والقواعد والكتابة للصف العاشر.',
+      description:
+        'Reading comprehension, grammar, and writing for Grade 10. Short texts each week, grammar drills that stick, and paragraph writing with teacher annotations.',
+      descriptionAr:
+        'فهم المقروء والقواعد والكتابة للصف العاشر. نصوص قصيرة أسبوعيًا وتمارين قواعد وكتابة فقرات مع تصحيح المعلّمة.',
       categoryId: school.id,
       subjectId: english.id,
       serviceType: ServiceType.SchoolCourse,
@@ -590,13 +665,13 @@ async function main() {
       tutorId: layla.id,
       instituteId: brightMinds.id,
       ratingAvg: 4.3,
-      ratingCount: 4,
+      ratingCount: 8,
       curriculum: {
         create: [
-          { order: 1, title: 'Reading Skills' },
-          { order: 2, title: 'Grammar Review' },
-          { order: 3, title: 'Paragraph Writing' },
-          { order: 4, title: 'Oral Practice' },
+          { order: 1, title: 'Reading Skills', description: 'Skimming, scanning, and inference practice.' },
+          { order: 2, title: 'Grammar Review', description: 'Tenses, articles, and common error patterns.' },
+          { order: 3, title: 'Paragraph Writing', description: 'Topic sentences, support, and concluding lines.' },
+          { order: 4, title: 'Oral Practice', description: 'Short presentations and classroom discussion.' },
         ],
       },
     },
@@ -606,8 +681,10 @@ async function main() {
     data: {
       title: 'Advanced Blender Lighting',
       titleAr: 'إضاءة بلندر المتقدمة',
-      description: 'Cinematic lighting, HDRI setups, and Cycles optimization.',
-      descriptionAr: 'إضاءة سينمائية وإعدادات HDRI وتحسين Cycles.',
+      description:
+        'Cinematic lighting, HDRI setups, and Cycles optimization. Built for students who already know Blender basics and want portfolio-ready lighting and look-dev workflows.',
+      descriptionAr:
+        'إضاءة سينمائية وإعدادات HDRI وتحسين Cycles لمن يجيد أساسيات بلندر ويريد مشاهد جاهزة للمعرض.',
       categoryId: design3d.id,
       subjectId: blender.id,
       serviceType: ServiceType.TrainingSkill,
@@ -622,13 +699,13 @@ async function main() {
       tutorId: zahra.id,
       instituteId: artNest.id,
       ratingAvg: 4.9,
-      ratingCount: 2,
+      ratingCount: 5,
       curriculum: {
         create: [
-          { order: 1, title: 'Light Types' },
-          { order: 2, title: 'HDRI Worlds' },
-          { order: 3, title: 'Look Development' },
-          { order: 4, title: 'Render Passes' },
+          { order: 1, title: 'Light Types', description: 'Area, spot, sun, and when to mix them.' },
+          { order: 2, title: 'HDRI Worlds', description: 'Environment maps, strength, and rotation.' },
+          { order: 3, title: 'Look Development', description: 'Materials under different lighting moods.' },
+          { order: 4, title: 'Render Passes', description: 'Denoising, compositing, and export checklist.' },
         ],
       },
     },
@@ -657,30 +734,94 @@ async function main() {
   const [
     itcsSessionA,
     itcsSessionB,
+    itcsSessionC,
+    mathSessionPast,
     mathSessionA,
     mathSessionB,
+    blenderSessionPast,
     blenderSessionA,
     blenderSessionB,
+    physicsSessionPast,
     physicsSession,
+    physicsSessionB,
     chemSession,
+    chemSessionB,
     ieltsSession,
+    ieltsSessionB,
+    pythonSessionPast,
     pythonSession,
+    pythonSessionB,
     englishSession,
+    englishSessionB,
     advBlenderSession,
+    laylaIeltsPast,
   ] = await Promise.all([
-    makeSession(itcs347.id, daysFromNow(7, 17), 25),
-    makeSession(itcs347.id, daysFromNow(14, 17), 25),
-    makeSession(mathG12.id, daysFromNow(5, 18), 8, 60),
-    makeSession(mathG12.id, daysFromNow(12, 18), 8, 60),
-    makeSession(blenderCourse.id, daysFromNow(10, 19), 10, 120),
-    makeSession(blenderCourse.id, daysFromNow(24, 19), 10, 120),
-    makeSession(physicsG11.id, daysFromNow(6, 16), 12, 60),
-    makeSession(chemG12.id, daysFromNow(9, 17), 10, 60),
-    makeSession(englishIelts.id, daysFromNow(8, 20), 8, 75),
-    makeSession(pythonIntro.id, daysFromNow(11, 18), 20),
-    makeSession(englishG10.id, daysFromNow(4, 15), 12, 55),
-    makeSession(advancedBlender.id, daysFromNow(18, 19), 8, 120),
+    makeSession(itcs347.id, daysFromNow(2, 17), 25),
+    makeSession(itcs347.id, daysFromNow(9, 17), 25),
+    makeSession(itcs347.id, daysFromNow(16, 17), 25),
+    makeSession(mathG12.id, daysFromNow(-10, 18), 8, 60),
+    makeSession(mathG12.id, daysFromNow(1, 18), 8, 60),
+    makeSession(mathG12.id, daysFromNow(8, 18), 8, 60),
+    makeSession(blenderCourse.id, daysFromNow(-14, 19), 10, 120),
+    makeSession(blenderCourse.id, daysFromNow(3, 19), 10, 120),
+    makeSession(blenderCourse.id, daysFromNow(17, 19), 10, 120),
+    makeSession(physicsG11.id, daysFromNow(-7, 16), 12, 60),
+    makeSession(physicsG11.id, daysFromNow(2, 16), 12, 60),
+    makeSession(physicsG11.id, daysFromNow(9, 16), 12, 60),
+    makeSession(chemG12.id, daysFromNow(4, 17), 10, 60),
+    makeSession(chemG12.id, daysFromNow(11, 17), 10, 60),
+    makeSession(englishIelts.id, daysFromNow(3, 20), 8, 75),
+    makeSession(englishIelts.id, daysFromNow(10, 20), 8, 75),
+    makeSession(pythonIntro.id, daysFromNow(-5, 18), 20),
+    makeSession(pythonIntro.id, daysFromNow(5, 18), 20),
+    makeSession(pythonIntro.id, daysFromNow(12, 18), 20),
+    makeSession(englishG10.id, daysFromNow(1, 15), 12, 55),
+    makeSession(englishG10.id, daysFromNow(8, 15), 12, 55),
+    makeSession(advancedBlender.id, daysFromNow(14, 19), 8, 120),
+    makeSession(englishIelts.id, daysFromNow(-12, 20), 8, 75),
   ]);
+
+  const makeCourseGroup = async (courseId: string, title: string, memberIds: string[]) => {
+    const unique = [...new Set(memberIds)];
+    return prisma.conversation.create({
+      data: {
+        courseId,
+        title,
+        participants: { create: unique.map((userId) => ({ userId })) },
+      },
+    });
+  };
+
+  await Promise.all([
+    makeCourseGroup(mathG12.id, mathG12.title, [sara.id, student.id, student2.id]),
+    makeCourseGroup(blenderCourse.id, blenderCourse.title, [zahra.id, student.id, student3.id]),
+    makeCourseGroup(physicsG11.id, physicsG11.title, [omar.id, student.id]),
+    makeCourseGroup(pythonIntro.id, pythonIntro.title, [sara.id, student.id]),
+    makeCourseGroup(englishIelts.id, englishIelts.title, [layla.id, student.id]),
+    makeCourseGroup(itcs347.id, itcs347.title, [sara.id, student3.id]),
+    makeCourseGroup(chemG12.id, chemG12.title, [omar.id, student2.id]),
+    makeCourseGroup(englishG10.id, englishG10.title, [layla.id, student2.id]),
+    makeCourseGroup(advancedBlender.id, advancedBlender.title, [zahra.id]),
+  ]);
+
+  const groupMath = await prisma.conversation.findUniqueOrThrow({
+    where: { courseId: mathG12.id },
+  });
+  const groupBlender = await prisma.conversation.findUniqueOrThrow({
+    where: { courseId: blenderCourse.id },
+  });
+  const groupPhysics = await prisma.conversation.findUniqueOrThrow({
+    where: { courseId: physicsG11.id },
+  });
+  const groupPython = await prisma.conversation.findUniqueOrThrow({
+    where: { courseId: pythonIntro.id },
+  });
+  const groupIelts = await prisma.conversation.findUniqueOrThrow({
+    where: { courseId: englishIelts.id },
+  });
+  const groupItcs = await prisma.conversation.findUniqueOrThrow({
+    where: { courseId: itcs347.id },
+  });
 
   const createBooking = async (input: {
     userId: string;
@@ -727,7 +868,7 @@ async function main() {
   const blenderCompleted = await createBooking({
     userId: student.id,
     courseId: blenderCourse.id,
-    sessionId: blenderSessionA.id,
+    sessionId: blenderSessionPast.id,
     status: BookingStatus.Completed,
     price: 85,
     paymentStatus: PaymentStatus.Paid,
@@ -737,8 +878,49 @@ async function main() {
   const mathCompleted = await createBooking({
     userId: student.id,
     courseId: mathG12.id,
-    sessionId: mathSessionA.id,
+    sessionId: mathSessionPast.id,
     status: BookingStatus.Completed,
+    price: 45,
+    paymentStatus: PaymentStatus.Paid,
+    paid: true,
+  });
+
+  const physicsCompleted = await createBooking({
+    userId: student.id,
+    courseId: physicsG11.id,
+    sessionId: physicsSessionPast.id,
+    status: BookingStatus.Completed,
+    price: 40,
+    paymentStatus: PaymentStatus.Paid,
+    paid: true,
+  });
+
+  const pythonCompleted = await createBooking({
+    userId: student.id,
+    courseId: pythonIntro.id,
+    sessionId: pythonSessionPast.id,
+    status: BookingStatus.Completed,
+    price: 70,
+    paymentStatus: PaymentStatus.Paid,
+    paid: true,
+  });
+
+  const ieltsCompleted = await createBooking({
+    userId: student.id,
+    courseId: englishIelts.id,
+    sessionId: laylaIeltsPast.id,
+    status: BookingStatus.Completed,
+    price: 55,
+    paymentStatus: PaymentStatus.Paid,
+    paid: true,
+  });
+
+  // Upcoming for demo student (earliest shows on home)
+  await createBooking({
+    userId: student.id,
+    courseId: mathG12.id,
+    sessionId: mathSessionA.id,
+    status: BookingStatus.Confirmed,
     price: 45,
     paymentStatus: PaymentStatus.Paid,
     paid: true,
@@ -756,11 +938,22 @@ async function main() {
 
   await createBooking({
     userId: student.id,
+    courseId: blenderCourse.id,
+    sessionId: blenderSessionA.id,
+    status: BookingStatus.Confirmed,
+    price: 85,
+    paymentStatus: PaymentStatus.Paid,
+    paid: true,
+  });
+
+  await createBooking({
+    userId: student.id,
     courseId: englishIelts.id,
     sessionId: ieltsSession.id,
-    status: BookingStatus.Pending,
+    status: BookingStatus.Confirmed,
     price: 55,
-    paymentStatus: PaymentStatus.Pending,
+    paymentStatus: PaymentStatus.Paid,
+    paid: true,
   });
 
   await createBooking({
@@ -769,6 +962,25 @@ async function main() {
     sessionId: pythonSession.id,
     status: BookingStatus.Confirmed,
     price: 70,
+    paymentStatus: PaymentStatus.Paid,
+    paid: true,
+  });
+
+  await createBooking({
+    userId: student.id,
+    courseId: pythonIntro.id,
+    sessionId: pythonSessionB.id,
+    status: BookingStatus.Pending,
+    price: 70,
+    paymentStatus: PaymentStatus.Pending,
+  });
+
+  const mathCompleted2 = await createBooking({
+    userId: student2.id,
+    courseId: mathG12.id,
+    sessionId: mathSessionPast.id,
+    status: BookingStatus.Completed,
+    price: 45,
     paymentStatus: PaymentStatus.Paid,
     paid: true,
   });
@@ -803,6 +1015,16 @@ async function main() {
   });
 
   await createBooking({
+    userId: student2.id,
+    courseId: chemG12.id,
+    sessionId: chemSessionB.id,
+    status: BookingStatus.Confirmed,
+    price: 42,
+    paymentStatus: PaymentStatus.Paid,
+    paid: true,
+  });
+
+  await createBooking({
     userId: student3.id,
     courseId: itcs347.id,
     sessionId: itcsSessionA.id,
@@ -816,9 +1038,29 @@ async function main() {
     userId: student3.id,
     courseId: itcs347.id,
     sessionId: itcsSessionB.id,
+    status: BookingStatus.Confirmed,
+    price: 120,
+    paymentStatus: PaymentStatus.Paid,
+    paid: true,
+  });
+
+  await createBooking({
+    userId: student3.id,
+    courseId: itcs347.id,
+    sessionId: itcsSessionC.id,
     status: BookingStatus.Pending,
     price: 120,
     paymentStatus: PaymentStatus.Pending,
+  });
+
+  const blenderCompleted3 = await createBooking({
+    userId: student3.id,
+    courseId: blenderCourse.id,
+    sessionId: blenderSessionPast.id,
+    status: BookingStatus.Completed,
+    price: 85,
+    paymentStatus: PaymentStatus.Paid,
+    paid: true,
   });
 
   await createBooking({
@@ -840,35 +1082,111 @@ async function main() {
     paymentStatus: PaymentStatus.Cancelled,
   });
 
-  await prisma.review.create({
-    data: {
-      bookingId: blenderCompleted.id,
-      userId: student.id,
-      courseId: blenderCourse.id,
-      tutorId: zahra.tutorProfile!.id,
-      rating: 5,
-      comment: 'Clear lessons and great pacing for absolute beginners.',
-    },
+  await createBooking({
+    userId: student.id,
+    courseId: physicsG11.id,
+    sessionId: physicsSessionB.id,
+    status: BookingStatus.Confirmed,
+    price: 40,
+    paymentStatus: PaymentStatus.Paid,
+    paid: true,
   });
 
-  await prisma.review.create({
-    data: {
-      bookingId: mathCompleted.id,
-      userId: student.id,
-      courseId: mathG12.id,
-      tutorId: sara.tutorProfile!.id,
-      rating: 5,
-      comment: 'Sara explains Grade 12 math with patience and clarity.',
-    },
+  await createBooking({
+    userId: student2.id,
+    courseId: englishG10.id,
+    sessionId: englishSessionB.id,
+    status: BookingStatus.Confirmed,
+    price: 35,
+    paymentStatus: PaymentStatus.Paid,
+    paid: true,
+  });
+
+  await createBooking({
+    userId: student.id,
+    courseId: englishIelts.id,
+    sessionId: ieltsSessionB.id,
+    status: BookingStatus.Pending,
+    price: 55,
+    paymentStatus: PaymentStatus.Pending,
+  });
+
+  await prisma.review.createMany({
+    data: [
+      {
+        bookingId: blenderCompleted.id,
+        userId: student.id,
+        courseId: blenderCourse.id,
+        tutorId: zahra.tutorProfile!.id,
+        rating: 5,
+        comment:
+          'Clear lessons and great pacing for absolute beginners. Zahra’s project feedback was specific and kind.',
+      },
+      {
+        bookingId: mathCompleted.id,
+        userId: student.id,
+        courseId: mathG12.id,
+        tutorId: sara.tutorProfile!.id,
+        rating: 5,
+        comment:
+          'Sara explains Grade 12 math with patience and clarity. The past-paper drills made a huge difference.',
+      },
+      {
+        bookingId: physicsCompleted.id,
+        userId: student.id,
+        courseId: physicsG11.id,
+        tutorId: omar.tutorProfile!.id,
+        rating: 4,
+        comment:
+          'Omar breaks mechanics into steps that finally clicked. Would love even more practice worksheets.',
+      },
+      {
+        bookingId: pythonCompleted.id,
+        userId: student.id,
+        courseId: pythonIntro.id,
+        tutorId: sara.tutorProfile!.id,
+        rating: 5,
+        comment: 'Hands-on from minute one. The mini project felt like real coding, not just slides.',
+      },
+      {
+        bookingId: ieltsCompleted.id,
+        userId: student.id,
+        courseId: englishIelts.id,
+        tutorId: layla.tutorProfile!.id,
+        rating: 5,
+        comment:
+          'Layla’s speaking feedback was gold. My cue-card answers got much more structured after two weeks.',
+      },
+      {
+        bookingId: mathCompleted2.id,
+        userId: student2.id,
+        courseId: mathG12.id,
+        tutorId: sara.tutorProfile!.id,
+        rating: 4,
+        comment: 'Solid exam prep. Probability week was intense but worth it.',
+      },
+      {
+        bookingId: blenderCompleted3.id,
+        userId: student3.id,
+        courseId: blenderCourse.id,
+        tutorId: zahra.tutorProfile!.id,
+        rating: 5,
+        comment: 'Best intro to Blender I’ve tried online. Lighting tips alone were worth it.',
+      },
+    ],
   });
 
   await prisma.favorite.createMany({
     data: [
       { userId: student.id, courseId: blenderCourse.id },
       { userId: student.id, courseId: itcs347.id },
+      { userId: student.id, courseId: englishIelts.id },
+      { userId: student.id, tutorId: sara.tutorProfile!.id },
       { userId: student.id, instituteId: brightMinds.id },
       { userId: student2.id, courseId: mathG12.id },
+      { userId: student2.id, tutorId: omar.tutorProfile!.id },
       { userId: student3.id, courseId: pythonIntro.id },
+      { userId: student3.id, courseId: itcs347.id },
     ],
   });
 
@@ -896,6 +1214,16 @@ async function main() {
             createdAt: daysFromNow(-1, 9),
             readAt: daysFromNow(-1, 10),
           },
+          {
+            senderId: sara.id,
+            body: 'Worksheet is in your email. Try Q1–Q6 before class and we’ll tackle the rest live.',
+            createdAt: daysFromNow(-1, 14),
+          },
+          {
+            senderId: student.id,
+            body: 'Got it — stuck a bit on conditional probability in Q4.',
+            createdAt: daysFromNow(0, 9),
+          },
         ],
       },
     },
@@ -918,6 +1246,17 @@ async function main() {
             senderId: student.id,
             body: 'Done — looking forward to modeling basics.',
             createdAt: daysFromNow(-3, 16),
+            readAt: daysFromNow(-3, 17),
+          },
+          {
+            senderId: zahra.id,
+            body: 'Great. Bring a still-life photo you’d like to recreate — fruit or a desk setup works.',
+            createdAt: daysFromNow(-2, 11),
+          },
+          {
+            senderId: student.id,
+            body: 'I’ll use a coffee mug and plant on my desk ☕',
+            createdAt: daysFromNow(-1, 20),
           },
         ],
       },
@@ -925,6 +1264,34 @@ async function main() {
   });
 
   const chatOmar = await prisma.conversation.create({
+    data: {
+      participants: {
+        create: [{ userId: student.id }, { userId: omar.id }],
+      },
+      messages: {
+        create: [
+          {
+            senderId: student.id,
+            body: 'Omar, can we spend extra time on free-body diagrams tomorrow?',
+            createdAt: daysFromNow(-1, 17),
+          },
+          {
+            senderId: omar.id,
+            body: 'Yes — I’ll open with two pulley examples, then we’ll do yours.',
+            createdAt: daysFromNow(-1, 18),
+            readAt: daysFromNow(-1, 18),
+          },
+          {
+            senderId: student.id,
+            body: 'Awesome, see you then.',
+            createdAt: daysFromNow(0, 8),
+          },
+        ],
+      },
+    },
+  });
+
+  const chatOmar2 = await prisma.conversation.create({
     data: {
       participants: {
         create: [{ userId: student2.id }, { userId: omar.id }],
@@ -949,7 +1316,7 @@ async function main() {
   const chatLayla = await prisma.conversation.create({
     data: {
       participants: {
-        create: [{ userId: student3.id }, { userId: layla.id }],
+        create: [{ userId: student.id }, { userId: layla.id }],
       },
       messages: {
         create: [
@@ -960,13 +1327,130 @@ async function main() {
             readAt: daysFromNow(-4, 13),
           },
           {
-            senderId: student3.id,
+            senderId: student.id,
             body: 'Thanks Layla! I’ll revise and send again before the mock.',
             createdAt: daysFromNow(-4, 14),
+            readAt: daysFromNow(-4, 15),
+          },
+          {
+            senderId: layla.id,
+            body: 'Also practice paraphrasing the question in your intro — that alone lifts cohesion.',
+            createdAt: daysFromNow(-2, 16),
+          },
+          {
+            senderId: student.id,
+            body: 'Noted. I’ll send the new draft tonight.',
+            createdAt: daysFromNow(-1, 21),
           },
         ],
       },
     },
+  });
+
+  const chatLaylaYusuf = await prisma.conversation.create({
+    data: {
+      participants: {
+        create: [{ userId: student3.id }, { userId: layla.id }],
+      },
+      messages: {
+        create: [
+          {
+            senderId: student3.id,
+            body: 'Layla, do you have tips for Speaking Part 3 follow-ups?',
+            createdAt: daysFromNow(-3, 10),
+          },
+          {
+            senderId: layla.id,
+            body: 'Answer, expand with a reason, then give a short example. Keep it under 40 seconds.',
+            createdAt: daysFromNow(-3, 11),
+            readAt: daysFromNow(-3, 12),
+          },
+        ],
+      },
+    },
+  });
+
+  // Course group messages
+  await prisma.message.createMany({
+    data: [
+      {
+        conversationId: groupMath.id,
+        senderId: sara.id,
+        body: 'Welcome to Mathematics — Grade 12! Upload your calculator model in the chat if you’re unsure about exam settings.',
+        createdAt: daysFromNow(-5, 12),
+        readAt: daysFromNow(-5, 13),
+      },
+      {
+        conversationId: groupMath.id,
+        senderId: student2.id,
+        body: 'Using a Casio fx-991EX — is that fine?',
+        createdAt: daysFromNow(-5, 13),
+        readAt: daysFromNow(-5, 14),
+      },
+      {
+        conversationId: groupMath.id,
+        senderId: sara.id,
+        body: 'Yes. Tonight’s worksheet covers functions — due before tomorrow’s class.',
+        createdAt: daysFromNow(-1, 19),
+      },
+      {
+        conversationId: groupBlender.id,
+        senderId: zahra.id,
+        body: 'Group note: render samples at 128 for drafts, 512 for finals. Don’t spam the GPU overnight 😅',
+        createdAt: daysFromNow(-4, 15),
+        readAt: daysFromNow(-4, 16),
+      },
+      {
+        conversationId: groupBlender.id,
+        senderId: student.id,
+        body: 'Thanks! My mug model is ready for critique.',
+        createdAt: daysFromNow(-2, 20),
+      },
+      {
+        conversationId: groupPhysics.id,
+        senderId: omar.id,
+        body: 'Physics crew — bring your formula sheet tomorrow. We’ll stress-test kinematics graphs.',
+        createdAt: daysFromNow(-1, 16),
+      },
+      {
+        conversationId: groupPython.id,
+        senderId: sara.id,
+        body: 'Python group: push your list/dict exercises to the shared folder before Sunday.',
+        createdAt: daysFromNow(-2, 18),
+        readAt: daysFromNow(-2, 19),
+      },
+      {
+        conversationId: groupPython.id,
+        senderId: student.id,
+        body: 'Uploaded mine — can someone review the dictionary nesting?',
+        createdAt: daysFromNow(-1, 22),
+      },
+      {
+        conversationId: groupIelts.id,
+        senderId: layla.id,
+        body: 'IELTS cohort: practice cue cards for 2 minutes daily this week. Record yourself.',
+        createdAt: daysFromNow(-3, 9),
+        readAt: daysFromNow(-3, 10),
+      },
+      {
+        conversationId: groupItcs.id,
+        senderId: sara.id,
+        body: 'ITCS347: dynamic programming homework is up. Office hours Thursday after class.',
+        createdAt: daysFromNow(-2, 17),
+      },
+      {
+        conversationId: groupItcs.id,
+        senderId: student3.id,
+        body: 'Is memoization required for the knapsack write-up?',
+        createdAt: daysFromNow(-1, 11),
+      },
+      {
+        conversationId: groupItcs.id,
+        senderId: sara.id,
+        body: 'Show both approaches — tabulation is enough for the grade, memoization gets bonus clarity.',
+        createdAt: daysFromNow(0, 10),
+      },
+    ],
   });
 
   console.log('Seed complete:', {
@@ -974,8 +1458,8 @@ async function main() {
     students: [student.email, student2.email, student3.email],
     institutes: [brightMinds.name, codeLab.name, artNest.name],
     courses: 9,
-    bookings: 12,
-    conversations: [chatSara.id, chatZahra.id, chatOmar.id, chatLayla.id].length,
+    reviews: 7,
+    password: 'Password123!',
   });
 }
 

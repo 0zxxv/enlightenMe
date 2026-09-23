@@ -212,6 +212,8 @@ export type Message = {
 export type Conversation = {
   id: string;
   updatedAt: string;
+  courseId?: string | null;
+  title?: string | null;
   participants: ConversationParticipant[];
-  messages: Message[];
+  messages?: Message[];
 };

@@ -14,6 +14,7 @@ import {
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Avatar } from '@/components/Avatar';
+import { BackButton } from '@/components/BackButton';
 import { ErrorState } from '@/components/ErrorState';
 import { LoadingState } from '@/components/LoadingState';
 import { useAuth } from '@/features/auth/useAuth';
@@ -84,6 +85,7 @@ export default function BookingDetailScreen() {
   if (bookingQuery.isLoading) {
     return (
       <View style={styles.root}>
+        <BackButton withSafeTop />
         <LoadingState />
       </View>
     );
@@ -91,6 +93,7 @@ export default function BookingDetailScreen() {
   if (bookingQuery.isError || !bookingQuery.data) {
     return (
       <View style={styles.root}>
+        <BackButton withSafeTop />
         <ErrorState onRetry={() => bookingQuery.refetch()} />
       </View>
     );
@@ -240,17 +243,7 @@ export default function BookingDetailScreen() {
 
       <SafeAreaView style={styles.safe} edges={['top']}>
         <View style={styles.topBar}>
-          <Pressable
-            style={styles.iconBtn}
-            onPress={() => router.back()}
-            accessibilityLabel={t('common.back')}
-          >
-            <Ionicons
-              name={isRTL ? 'chevron-forward' : 'chevron-back'}
-              size={22}
-              color={colors.primary}
-            />
-          </Pressable>
+          <BackButton />
           <View style={styles.topTitles}>
             <Text style={styles.pageTitle}>{t('bookings.detail')}</Text>
             <Text style={styles.pageSubtitle}>{t('bookings.detailSubtitle')}</Text>
@@ -443,7 +436,7 @@ export default function BookingDetailScreen() {
             </View>
             <Pressable
               style={styles.viewSessions}
-              onPress={() => router.push(`/course/${booking.courseId}`)}
+              onPress={() => router.push(`/booking/sessions/${booking.id}`)}
             >
               <Text style={styles.viewSessionsText}>{t('bookings.viewSessions')}</Text>
               <Ionicons name={chevron} size={14} color={colors.primary} />

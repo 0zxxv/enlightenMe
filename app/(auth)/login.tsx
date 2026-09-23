@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AuthArtShell } from '@/components/AuthArtShell';
+import { BackButton } from '@/components/BackButton';
 import { useAuth } from '@/features/auth/useAuth';
 import { useTranslation } from '@/i18n';
 import en from '@/i18n/locales/en.json';
@@ -71,6 +72,9 @@ export default function LoginScreen() {
   return (
     <AuthArtShell>
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+        <View style={styles.topBar}>
+          <BackButton onPress={() => router.back()} />
+        </View>
         <KeyboardAvoidingView
           style={styles.flex}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -240,6 +244,10 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, zIndex: 1 },
   flex: { flex: 1 },
+  topBar: {
+    paddingHorizontal: spacing.xxl,
+    paddingTop: spacing.sm,
+  },
   content: {
     paddingHorizontal: spacing.xxl,
     paddingTop: spacing.lg,

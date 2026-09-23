@@ -16,3 +16,11 @@ export function useCourse(id: string) {
     enabled: Boolean(id),
   });
 }
+
+export function useCourseSessions(courseId: string) {
+  return useQuery({
+    queryKey: ['course-sessions', courseId],
+    queryFn: () => coursesApi.listCourseSessions(courseId),
+    enabled: Boolean(courseId),
+  });
+}

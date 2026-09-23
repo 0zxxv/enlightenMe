@@ -19,6 +19,7 @@ import { LoadingState } from '@/components/LoadingState';
 import { SearchBar } from '@/components/SearchBar';
 import { useAuth } from '@/features/auth/useAuth';
 import { useConversations } from '@/features/messages/hooks';
+import { isConversationUnread } from '@/features/messages/unread';
 import { useConversationPrefs } from '@/features/messages/useConversationPrefs';
 import { useRefresh } from '@/hooks/useRefresh';
 import { useTranslation } from '@/i18n';
@@ -26,24 +27,12 @@ import { colors, radius, shadows, spacing, typography } from '@/theme';
 import type { Conversation, Role } from '@/types/models';
 import { formatDate, formatTime, fullName } from '@/utils/format';
 
-type FilterId = 'all' | 'unread' | 'teachers' | 'students' | 'admins' | 'groups';
+type FilterId = 'all' | 'unread' | 'teachers' | 'students' | 'admins' | 'groups' | 'courses';
 type ListMode = 'inbox' | 'archived';
 
 type Props = {
   emptyHintKey?: 'messages.emptyHint' | 'messages.emptyHintTutor';
 };
-
-function isUnread(
-  conversation: Conversation,
-  userId: string | undefined,
-  forcedUnread: string[],
-) {
-  if (forcedUnread.includes(conversation.id)) return true;
-  const last = conversation.messages?.[0];
-  if (!last || !userId) return false;
-  if (last.senderId === userId) return false;
-  return !last.readAt;
-}
 
 function otherParticipant(conversation: Conversation, userId?: string) {
   return conversation.participants.find((p) => p.userId !== userId)?.user;
@@ -53,16 +42,19 @@ function matchesFilter(
   conversation: Conversation,
   filter: FilterId,
   userId: string | undefined,
-  forcedUnread: string[],
+  prefs: { forcedUnread: string[]; seenMessageId: Record<string, string> },
 ): boolean {
   if (filter === 'all') return true;
-  if (filter === 'unread') return isUnread(conversation, userId, forcedUnread);
+  if (filter === 'unread') return isConversationUnread(conversation, userId, prefs);
+  if (filter === 'courses') return Boolean(conversation.courseId);
+  if (filter === 'groups') {
+    return conversation.participants.length > 2 || Boolean(conversation.courseId);
+  }
   const other = otherParticipant(conversation, userId);
   const role = other?.role as Role | undefined;
   if (filter === 'teachers') return role === 'Tutor';
   if (filter === 'students') return role === 'Student' || role === 'Parent';
   if (filter === 'admins') return role === 'Admin' || role === 'InstituteAdmin';
-  if (filter === 'groups') return conversation.participants.length > 2;
   return true;
 }
 
@@ -95,7 +87,7 @@ export function MessagesInbox({ emptyHintKey = 'messages.emptyHint' }: Props) {
     togglePinned,
     toggleArchived,
     markUnread,
-    clearForcedUnread,
+    markRead,
     deleteChat,
   } = useConversationPrefs();
   const { refreshing, onRefresh } = useRefresh(async () => {
@@ -105,6 +97,7 @@ export function MessagesInbox({ emptyHintKey = 'messages.emptyHint' }: Props) {
   const filters: { id: FilterId; label: string }[] = [
     { id: 'all', label: t('messages.filterAll') },
     { id: 'unread', label: t('messages.filterUnread') },
+    { id: 'courses', label: t('messages.filterCourses') },
     { id: 'teachers', label: t('messages.filterTeachers') },
     { id: 'students', label: t('messages.filterStudents') },
     { id: 'admins', label: t('messages.filterAdmins') },
@@ -117,14 +110,15 @@ export function MessagesInbox({ emptyHintKey = 'messages.emptyHint' }: Props) {
       if (prefs.deleted.includes(item.id)) return false;
       const archived = prefs.archived.includes(item.id);
       if (mode === 'archived' ? !archived : archived) return false;
-      if (mode === 'inbox' && !matchesFilter(item, filter, user?.id, prefs.forcedUnread)) {
+      if (mode === 'inbox' && !matchesFilter(item, filter, user?.id, prefs)) {
         return false;
       }
       if (!q) return true;
       const other = otherParticipant(item, user?.id);
       const name = fullName(other?.firstName, other?.lastName).toLowerCase();
+      const courseTitle = (item.title ?? '').toLowerCase();
       const preview = (item.messages?.[0]?.body ?? '').toLowerCase();
-      return name.includes(q) || preview.includes(q);
+      return name.includes(q) || courseTitle.includes(q) || preview.includes(q);
     });
   }, [
     conversationsQuery.data,
@@ -133,6 +127,7 @@ export function MessagesInbox({ emptyHintKey = 'messages.emptyHint' }: Props) {
     prefs.archived,
     prefs.deleted,
     prefs.forcedUnread,
+    prefs.seenMessageId,
     query,
     user?.id,
   ]);
@@ -185,7 +180,8 @@ export function MessagesInbox({ emptyHintKey = 'messages.emptyHint' }: Props) {
   const chevron = isRTL ? 'chevron-back' : 'chevron-forward';
 
   const openChat = (id: string) => {
-    clearForcedUnread(id);
+    const conversation = (conversationsQuery.data ?? []).find((item) => item.id === id);
+    markRead(id, conversation?.messages?.[0]?.id);
     setMenuId(null);
     router.push(`/conversation/${id}`);
   };
@@ -280,10 +276,12 @@ export function MessagesInbox({ emptyHintKey = 'messages.emptyHint' }: Props) {
 
   const renderChat = (conversation: Conversation, pinned: boolean) => {
     const other = otherParticipant(conversation, user?.id);
-    const name = fullName(other?.firstName, other?.lastName) || t('messages.title');
+    const name = conversation.courseId
+      ? conversation.title || t('messages.courseGroup')
+      : fullName(other?.firstName, other?.lastName) || t('messages.title');
     const last = conversation.messages?.[0];
     const preview = last?.body;
-    const unread = isUnread(conversation, user?.id, prefs.forcedUnread);
+    const unread = isConversationUnread(conversation, user?.id, prefs);
     const when = previewTime(last?.createdAt ?? conversation.updatedAt, language);
 
     return (
@@ -299,7 +297,13 @@ export function MessagesInbox({ emptyHintKey = 'messages.emptyHint' }: Props) {
           ) : null}
           <View style={styles.avatarWrap}>
             <Avatar name={name} size={52} />
-            <View style={styles.onlineDot} />
+            {conversation.courseId ? (
+              <View style={styles.courseMark}>
+                <Ionicons name="school" size={10} color={colors.white} />
+              </View>
+            ) : (
+              <View style={styles.onlineDot} />
+            )}
           </View>
         </View>
         <View style={styles.body}>
@@ -612,6 +616,19 @@ const styles = StyleSheet.create({
     height: 12,
     borderRadius: 6,
     backgroundColor: colors.success,
+    borderWidth: 2,
+    borderColor: colors.white,
+  },
+  courseMark: {
+    position: 'absolute',
+    right: 0,
+    bottom: 0,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 2,
     borderColor: colors.white,
   },

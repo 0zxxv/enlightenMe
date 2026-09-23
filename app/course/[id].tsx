@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '@/components/Avatar';
+import { BackButton } from '@/components/BackButton';
 import { Badge } from '@/components/Badge';
 import { Button } from '@/components/Button';
 import { EmptyState } from '@/components/EmptyState';
@@ -63,6 +64,7 @@ export default function CourseDetailsScreen() {
   const layout = useLayout();
   const { isAuthenticated } = useAuth();
   const [tab, setTab] = useState<DetailTab>('curriculum');
+  const [expandedCurriculumId, setExpandedCurriculumId] = useState<string | null>(null);
   const courseQuery = useCourse(id);
   const course = courseQuery.data;
   const favoritesQuery = useFavorites();
@@ -78,9 +80,21 @@ export default function CourseDetailsScreen() {
     await courseQuery.refetch();
   });
 
-  if (courseQuery.isLoading) return <LoadingState />;
+  if (courseQuery.isLoading) {
+    return (
+      <View style={styles.root}>
+        <BackButton withSafeTop />
+        <LoadingState />
+      </View>
+    );
+  }
   if (courseQuery.isError || !course) {
-    return <ErrorState onRetry={() => courseQuery.refetch()} />;
+    return (
+      <View style={styles.root}>
+        <BackButton withSafeTop />
+        <ErrorState onRetry={() => courseQuery.refetch()} />
+      </View>
+    );
   }
 
   const tutorName = fullName(course.tutor?.firstName, course.tutor?.lastName);
@@ -156,19 +170,7 @@ export default function CourseDetailsScreen() {
             contentFit={isLocal || course.imageUrl ? 'cover' : 'contain'}
           />
           <View style={[styles.heroActions, { paddingTop: insets.top + spacing.sm }]}>
-            <Pressable
-              style={styles.heroBtn}
-              onPress={() => router.back()}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel={t('common.back')}
-            >
-              <Ionicons
-                name={language === 'ar' ? 'chevron-forward' : 'chevron-back'}
-                size={22}
-                color={colors.white}
-              />
-            </Pressable>
+            <BackButton variant="overlay" />
             <View style={styles.heroRight}>
               <Pressable
                 style={styles.heroBtn}
@@ -289,16 +291,39 @@ export default function CourseDetailsScreen() {
           {tab === 'curriculum' ? (
             course.curriculum?.length ? (
               <View style={styles.curriculumList}>
-                {course.curriculum.map((item) => (
-                  <View key={item.id} style={styles.curriculumItem}>
-                    <View style={styles.curriculumBadge}>
-                      <Text style={styles.curriculumOrder}>{item.order}</Text>
-                    </View>
-                    <Text style={styles.curriculumTitle}>
-                      {language === 'ar' && item.titleAr ? item.titleAr : item.title}
-                    </Text>
-                  </View>
-                ))}
+                {course.curriculum.map((item) => {
+                  const expanded = expandedCurriculumId === item.id;
+                  const title =
+                    language === 'ar' && item.titleAr ? item.titleAr : item.title;
+                  return (
+                    <Pressable
+                      key={item.id}
+                      style={[styles.curriculumItem, expanded && styles.curriculumItemOpen]}
+                      onPress={() =>
+                        setExpandedCurriculumId((prev) => (prev === item.id ? null : item.id))
+                      }
+                    >
+                      <View style={styles.curriculumBadge}>
+                        <Text style={styles.curriculumOrder}>{item.order}</Text>
+                      </View>
+                      <View style={styles.curriculumCopy}>
+                        <View style={styles.curriculumTitleRow}>
+                          <Text style={styles.curriculumTitle}>{title}</Text>
+                          <Ionicons
+                            name={expanded ? 'chevron-up' : 'chevron-down'}
+                            size={16}
+                            color={colors.textMuted}
+                          />
+                        </View>
+                        {expanded ? (
+                          <Text style={styles.curriculumDesc}>
+                            {item.description?.trim() || t('course.curriculumNoDetails')}
+                          </Text>
+                        ) : null}
+                      </View>
+                    </Pressable>
+                  );
+                })}
               </View>
             ) : (
               <EmptyState title={t('course.noCurriculum')} />
@@ -528,12 +553,15 @@ const styles = StyleSheet.create({
   },
   curriculumItem: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: spacing.md,
     backgroundColor: '#F3F1F6',
     borderRadius: radius.md,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.md,
+  },
+  curriculumItemOpen: {
+    backgroundColor: colors.lavenderSoft,
   },
   curriculumBadge: {
     width: 28,
@@ -542,17 +570,29 @@ const styles = StyleSheet.create({
     backgroundColor: colors.lavenderSoft,
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 2,
   },
   curriculumOrder: {
     ...typography.caption,
     color: colors.primary,
     fontWeight: '800',
   },
+  curriculumCopy: { flex: 1, gap: spacing.sm },
+  curriculumTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
   curriculumTitle: {
     ...typography.body,
     color: colors.text,
     flex: 1,
     fontWeight: '600',
+  },
+  curriculumDesc: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    lineHeight: 18,
   },
   review: {
     backgroundColor: colors.background,

@@ -326,6 +326,16 @@ export async function createCourse(tutorId: string, input: z.infer<typeof create
     include: courseInclude,
   });
 
+  await prisma.conversation.create({
+    data: {
+      courseId: course.id,
+      title: course.title,
+      participants: {
+        create: [{ userId: tutorId }],
+      },
+    },
+  });
+
   await prisma.tutorProfile.updateMany({
     where: { userId: tutorId },
     data: { courseCount: { increment: 1 } },

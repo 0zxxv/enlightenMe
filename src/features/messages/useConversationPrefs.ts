@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useSyncExternalStore } from 'react';
 import {
   loadConversationPrefs,
   saveConversationPrefs,
@@ -11,85 +11,115 @@ const EMPTY: ConversationPrefs = {
   archived: [],
   forcedUnread: [],
   deleted: [],
+  seenMessageId: {},
 };
 
+let prefsState: ConversationPrefs = EMPTY;
+let readyState = false;
+let loadStarted = false;
+const listeners = new Set<() => void>();
+
+function emit() {
+  listeners.forEach((listener) => listener());
+}
+
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+function getSnapshot() {
+  return prefsState;
+}
+
+function getReadySnapshot() {
+  return readyState;
+}
+
+function ensureLoaded() {
+  if (loadStarted) return;
+  loadStarted = true;
+  void loadConversationPrefs().then((next) => {
+    prefsState = next;
+    readyState = true;
+    emit();
+  });
+}
+
+function commit(next: ConversationPrefs) {
+  prefsState = next;
+  emit();
+  void saveConversationPrefs(next);
+}
+
 export function useConversationPrefs() {
-  const [prefs, setPrefs] = useState<ConversationPrefs>(EMPTY);
-  const [ready, setReady] = useState(false);
+  ensureLoaded();
+  const prefs = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+  const ready = useSyncExternalStore(subscribe, getReadySnapshot, getReadySnapshot);
 
-  useEffect(() => {
-    let alive = true;
-    loadConversationPrefs().then((next) => {
-      if (!alive) return;
-      setPrefs(next);
-      setReady(true);
+  const togglePinned = useCallback((id: string) => {
+    const current = prefsState;
+    const on = !current.pinned.includes(id);
+    commit({
+      ...current,
+      pinned: toggleId(current.pinned, id, on),
+      archived: on ? current.archived.filter((item) => item !== id) : current.archived,
     });
-    return () => {
-      alive = false;
-    };
   }, []);
 
-  const commit = useCallback((next: ConversationPrefs) => {
-    setPrefs(next);
-    void saveConversationPrefs(next);
+  const toggleArchived = useCallback((id: string) => {
+    const current = prefsState;
+    const on = !current.archived.includes(id);
+    commit({
+      ...current,
+      archived: toggleId(current.archived, id, on),
+      pinned: on ? current.pinned.filter((item) => item !== id) : current.pinned,
+    });
   }, []);
 
-  const togglePinned = useCallback(
-    (id: string) => {
-      const on = !prefs.pinned.includes(id);
-      commit({
-        ...prefs,
-        pinned: toggleId(prefs.pinned, id, on),
-        archived: on ? prefs.archived.filter((item) => item !== id) : prefs.archived,
-      });
-    },
-    [commit, prefs],
-  );
+  const markUnread = useCallback((id: string) => {
+    const current = prefsState;
+    const nextSeen = { ...current.seenMessageId };
+    delete nextSeen[id];
+    commit({
+      ...current,
+      forcedUnread: toggleId(current.forcedUnread, id, true),
+      seenMessageId: nextSeen,
+    });
+  }, []);
 
-  const toggleArchived = useCallback(
-    (id: string) => {
-      const on = !prefs.archived.includes(id);
-      commit({
-        ...prefs,
-        archived: toggleId(prefs.archived, id, on),
-        pinned: on ? prefs.pinned.filter((item) => item !== id) : prefs.pinned,
-      });
-    },
-    [commit, prefs],
-  );
+  const clearForcedUnread = useCallback((id: string) => {
+    const current = prefsState;
+    if (!current.forcedUnread.includes(id)) return;
+    commit({
+      ...current,
+      forcedUnread: current.forcedUnread.filter((item) => item !== id),
+    });
+  }, []);
 
-  const markUnread = useCallback(
-    (id: string) => {
-      commit({
-        ...prefs,
-        forcedUnread: toggleId(prefs.forcedUnread, id, true),
-      });
-    },
-    [commit, prefs],
-  );
+  const markRead = useCallback((id: string, lastMessageId?: string | null) => {
+    const current = prefsState;
+    const nextSeen = { ...current.seenMessageId };
+    if (lastMessageId) nextSeen[id] = lastMessageId;
+    commit({
+      ...current,
+      forcedUnread: current.forcedUnread.filter((item) => item !== id),
+      seenMessageId: nextSeen,
+    });
+  }, []);
 
-  const clearForcedUnread = useCallback(
-    (id: string) => {
-      if (!prefs.forcedUnread.includes(id)) return;
-      commit({
-        ...prefs,
-        forcedUnread: prefs.forcedUnread.filter((item) => item !== id),
-      });
-    },
-    [commit, prefs],
-  );
-
-  const deleteChat = useCallback(
-    (id: string) => {
-      commit({
-        pinned: prefs.pinned.filter((item) => item !== id),
-        archived: prefs.archived.filter((item) => item !== id),
-        forcedUnread: prefs.forcedUnread.filter((item) => item !== id),
-        deleted: toggleId(prefs.deleted, id, true),
-      });
-    },
-    [commit, prefs],
-  );
+  const deleteChat = useCallback((id: string) => {
+    const current = prefsState;
+    const nextSeen = { ...current.seenMessageId };
+    delete nextSeen[id];
+    commit({
+      pinned: current.pinned.filter((item) => item !== id),
+      archived: current.archived.filter((item) => item !== id),
+      forcedUnread: current.forcedUnread.filter((item) => item !== id),
+      deleted: toggleId(current.deleted, id, true),
+      seenMessageId: nextSeen,
+    });
+  }, []);
 
   return {
     prefs,
@@ -97,6 +127,7 @@ export function useConversationPrefs() {
     togglePinned,
     toggleArchived,
     markUnread,
+    markRead,
     clearForcedUnread,
     deleteChat,
   };
