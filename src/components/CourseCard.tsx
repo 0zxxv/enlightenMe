@@ -127,6 +127,7 @@ const styles = StyleSheet.create({
   cardFeatured: {
     marginBottom: 0,
     flex: 1,
+    minHeight: 260,
   },
   imageWrap: {
     position: 'relative',
@@ -154,6 +155,7 @@ const styles = StyleSheet.create({
     ...shadows.sm,
   },
   body: {
+    flex: 1,
     padding: spacing.lg,
     gap: spacing.sm,
   },
@@ -164,10 +166,12 @@ const styles = StyleSheet.create({
   title: {
     ...typography.subheading,
     color: colors.text,
+    minHeight: 44,
   },
   titleFeatured: {
     fontSize: 14,
     lineHeight: 18,
+    minHeight: 36,
   },
   tutorRow: {
     flexDirection: 'row',
@@ -183,7 +187,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: spacing.xs,
+    marginTop: 'auto',
+    paddingTop: spacing.sm,
   },
   ratingRow: {
     flexDirection: 'row',

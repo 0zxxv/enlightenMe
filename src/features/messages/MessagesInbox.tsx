@@ -245,9 +245,6 @@ export function MessagesInbox({ emptyHintKey = 'messages.emptyHint' }: Props) {
               placeholder={t('messages.searchPlaceholder')}
               style={styles.search}
             />
-            <Pressable style={styles.filterBtn} hitSlop={4}>
-              <Ionicons name="options-outline" size={20} color={colors.primary} />
-            </Pressable>
           </View>
 
           <ScrollView
@@ -555,17 +552,6 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   search: { flex: 1 },
-  filterBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: radius.lg,
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...shadows.sm,
-  },
   chips: { gap: spacing.sm, paddingVertical: 2 },
   chip: {
     paddingHorizontal: spacing.lg,

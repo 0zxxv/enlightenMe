@@ -7,7 +7,7 @@ const PLACEHOLDER = require('../../assets/images/dars_icon.png');
  * Bundled course art — filenames in assets/images/courses-images match the course.
  * More specific keys are listed first so they win over broader ones (e.g. algorithms before it).
  */
-const LOCAL_COURSE_IMAGES: { key: string; match: RegExp; source: ImageSource }[] = [
+export const LOCAL_COURSE_IMAGES: { key: string; match: RegExp; source: ImageSource }[] = [
   {
     key: 'algorithms',
     match: /\b(algorithm|algorithms|itcs347)\b/i,
@@ -67,4 +67,8 @@ export function resolveCourseImageSource(
     return { source: { uri: course.imageUrl }, isLocal: false };
   }
   return { source: PLACEHOLDER, isLocal: false };
+}
+
+export function courseImageByKey(key: string): ImageSource | null {
+  return LOCAL_COURSE_IMAGES.find((entry) => entry.key === key)?.source ?? null;
 }

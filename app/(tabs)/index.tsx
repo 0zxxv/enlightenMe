@@ -44,7 +44,9 @@ export default function HomeScreen() {
   const firstName = user?.firstName ?? t('brand.name');
   const rowDir = isRTL ? ('row-reverse' as const) : ('row' as const);
 
-  const subjects = useMemo(() => {
+  const isLarge = layout.isTablet || layout.isDesktop;
+
+  const phoneSubjects = useMemo(() => {
     const count = layout.subjectColumns;
     return POPULAR_SUBJECTS.slice(0, Math.max(4, count));
   }, [layout.subjectColumns]);
@@ -56,6 +58,12 @@ export default function HomeScreen() {
   const courseGap = spacing.md;
   const courseWidthPct = `${100 / layout.courseColumns}%` as `${number}%`;
 
+  const openSubject = (subject: (typeof POPULAR_SUBJECTS)[number]) => {
+    router.push({
+      pathname: '/(tabs)/explore',
+      params: { q: language === 'ar' ? subject.ar : subject.en },
+    });
+  };
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView
@@ -116,73 +124,108 @@ export default function HomeScreen() {
           ))}
         </View>
 
-        <Pressable
-          style={styles.promoWrap}
-          onPress={() => router.push('/(tabs)/explore')}
-        >
-          <Image
-            source={require('../../assets/images/bg2.png')}
-            style={styles.promoBg}
-            contentFit="cover"
-          />
-          <View style={[styles.promo, { flexDirection: rowDir }]}>
-            <View style={styles.promoCopy}>
-              <Text
-                style={[
-                  styles.promoTitle,
-                  { textAlign: isRTL ? 'right' : 'left', writingDirection: isRTL ? 'rtl' : 'ltr' },
-                ]}
-              >
-                {t('home.promoTitle')}
-              </Text>
-              <Text
-                style={[
-                  styles.promoSubtitle,
-                  { textAlign: isRTL ? 'right' : 'left', writingDirection: isRTL ? 'rtl' : 'ltr' },
-                ]}
-              >
-                {t('home.promoSubtitle')}
-              </Text>
-            </View>
-            <View style={styles.promoArrow}>
-              <Ionicons
-                name={isRTL ? 'arrow-back' : 'arrow-forward'}
-                size={20}
-                color={colors.primary}
-              />
-            </View>
-          </View>
-        </Pressable>
-
-        <SectionHeader
-          title={t('home.popularSubjects')}
-          actionLabel={t('common.seeAll')}
-          onAction={() => router.push('/(tabs)/explore')}
-        />
-        <View style={[styles.subjectGrid, { flexDirection: rowDir }]}>
-          {subjects.map((subject) => (
+        {!isLarge ? (
+          <>
             <Pressable
-              key={subject.id}
-              style={[
-                styles.subjectItem,
-                { width: `${100 / Math.min(layout.subjectColumns, subjects.length)}%` },
-              ]}
-              onPress={() =>
-                router.push({
-                  pathname: '/(tabs)/explore',
-                  params: { q: language === 'ar' ? subject.ar : subject.en },
-                })
-              }
+              style={styles.promoWrap}
+              onPress={() => router.push('/(tabs)/explore')}
             >
-              <View style={[styles.subjectIcon, { backgroundColor: subject.soft }]}>
-                <Ionicons name={subject.icon} size={22} color={subject.tint} />
+              <Image
+                source={require('../../assets/images/bg2.png')}
+                style={styles.promoBg}
+                contentFit="cover"
+              />
+              <View style={[styles.promo, { flexDirection: rowDir }]}>
+                <View style={styles.promoCopy}>
+                  <Text
+                    style={[
+                      styles.promoTitle,
+                      {
+                        textAlign: isRTL ? 'right' : 'left',
+                        writingDirection: isRTL ? 'rtl' : 'ltr',
+                      },
+                    ]}
+                  >
+                    {t('home.promoTitle')}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.promoSubtitle,
+                      {
+                        textAlign: isRTL ? 'right' : 'left',
+                        writingDirection: isRTL ? 'rtl' : 'ltr',
+                      },
+                    ]}
+                  >
+                    {t('home.promoSubtitle')}
+                  </Text>
+                </View>
+                <View style={styles.promoArrow}>
+                  <Ionicons
+                    name={isRTL ? 'arrow-back' : 'arrow-forward'}
+                    size={20}
+                    color={colors.primary}
+                  />
+                </View>
               </View>
-              <Text style={styles.subjectLabel} numberOfLines={1}>
-                {language === 'ar' ? subject.ar : subject.en}
-              </Text>
             </Pressable>
-          ))}
-        </View>
+
+            <SectionHeader
+              title={t('home.popularSubjects')}
+              actionLabel={t('common.seeAll')}
+              onAction={() => router.push('/subjects')}
+            />
+            <View style={[styles.subjectGrid, { flexDirection: rowDir }]}>
+              {phoneSubjects.map((subject) => (
+                <Pressable
+                  key={subject.id}
+                  style={[
+                    styles.subjectItemGrid,
+                    {
+                      width: `${100 / Math.min(layout.subjectColumns, phoneSubjects.length)}%`,
+                    },
+                  ]}
+                  onPress={() => openSubject(subject)}
+                >
+                  <View style={[styles.subjectIcon, { backgroundColor: subject.soft }]}>
+                    <Ionicons name={subject.icon} size={22} color={subject.tint} />
+                  </View>
+                  <Text style={styles.subjectLabel} numberOfLines={1}>
+                    {language === 'ar' ? subject.ar : subject.en}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </>
+        ) : (
+          <View style={styles.subjectsBlock}>
+            <SectionHeader
+              title={t('home.popularSubjects')}
+              actionLabel={t('common.seeAll')}
+              onAction={() => router.push('/subjects')}
+            />
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={[styles.subjectStrip, { flexDirection: rowDir }]}
+            >
+              {POPULAR_SUBJECTS.map((subject) => (
+                <Pressable
+                  key={subject.id}
+                  style={styles.subjectItemStrip}
+                  onPress={() => openSubject(subject)}
+                >
+                  <View style={[styles.subjectIcon, { backgroundColor: subject.soft }]}>
+                    <Ionicons name={subject.icon} size={22} color={subject.tint} />
+                  </View>
+                  <Text style={styles.subjectLabel} numberOfLines={1}>
+                    {language === 'ar' ? subject.ar : subject.en}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+        )}
 
         <SectionHeader
           title={t('home.featuredCourses')}
@@ -276,6 +319,16 @@ const styles = StyleSheet.create({
     width: '100%',
     aspectRatio: 2.35,
   },
+  subjectsBlock: {
+    gap: spacing.sm,
+  },
+  subjectStrip: {
+    gap: spacing.md,
+    paddingVertical: spacing.xs,
+  },
+  subjectGrid: {
+    flexWrap: 'wrap',
+  },
   promoBg: {
     ...StyleSheet.absoluteFill,
     width: '100%',
@@ -313,14 +366,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     ...shadows.sm,
   },
-  subjectGrid: {
-    flexWrap: 'wrap',
-  },
-  subjectItem: {
+  subjectItemGrid: {
     alignItems: 'center',
     gap: spacing.sm,
     paddingVertical: spacing.sm,
     paddingHorizontal: 4,
+  },
+  subjectItemStrip: {
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: 4,
+    width: 76,
   },
   subjectIcon: {
     width: 56,

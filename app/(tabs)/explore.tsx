@@ -5,7 +5,6 @@ import {
   FlatList,
   Pressable,
   RefreshControl,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -21,25 +20,22 @@ import { EmptyState } from '@/components/EmptyState';
 import { ErrorState } from '@/components/ErrorState';
 import { InstituteCard } from '@/components/InstituteCard';
 import { LoadingState } from '@/components/LoadingState';
+import { Button } from '@/components/Button';
+import { Chip } from '@/components/Chip';
+import { Modal } from '@/components/Modal';
 import { SearchBar } from '@/components/SearchBar';
 import { SectionHeader } from '@/components/SectionHeader';
 import { TutorCard } from '@/components/TutorCard';
 import { SERVICE_CATEGORY_CHIPS } from '@/constants/catalog';
-import {
-  PROVIDER_TYPE_LABEL_KEYS,
-  normalizeServiceType,
-  providersForService,
-  type ProviderType,
-  type ServiceType,
-} from '@/domain/marketplace';
+import { normalizeServiceType, providersForService, type ServiceType } from '@/domain/marketplace';
 import { useCourses } from '@/features/courses/hooks';
 import { useInstitutes } from '@/features/institutes/hooks';
 import { useTutors } from '@/features/tutors/hooks';
 import { useLayout } from '@/hooks/useLayout';
 import { useRefresh } from '@/hooks/useRefresh';
 import { useTranslation } from '@/i18n';
-import { colors, radius, spacing, typography } from '@/theme';
-import type { Course, Institute, Tutor } from '@/types/models';
+import { colors, radius, shadows, spacing, typography } from '@/theme';
+import type { Course, CourseFormat, Institute, Tutor } from '@/types/models';
 import { yogaDirection } from '@/utils/rtl';
 
 type ResultTab = 'services' | 'providers';
@@ -49,6 +45,14 @@ type ListRow =
   | { kind: 'institute'; item: Institute };
 
 const SEGMENT_PAD = 4;
+
+type FormatFilter = 'all' | CourseFormat;
+type SortOption = 'default' | 'priceAsc' | 'priceDesc' | 'rating';
+
+function coursePrice(course: Course): number {
+  const raw = course.priceDecimal;
+  return typeof raw === 'number' ? raw : Number.parseFloat(String(raw)) || 0;
+}
 
 export default function ExploreScreen() {
   const { t, isRTL } = useTranslation();
@@ -66,7 +70,11 @@ export default function ExploreScreen() {
     const raw = params.serviceType ?? params.type;
     return raw ? normalizeServiceType(String(raw)) ?? undefined : undefined;
   });
-  const [providerType, setProviderType] = useState<ProviderType | 'all'>('all');
+  const [formatFilter, setFormatFilter] = useState<FormatFilter>('all');
+  const [sortBy, setSortBy] = useState<SortOption>('default');
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [draftFormat, setDraftFormat] = useState<FormatFilter>('all');
+  const [draftSort, setDraftSort] = useState<SortOption>('default');
   const [resultTab, setResultTab] = useState<ResultTab>(() => {
     if (params.result === 'providers' || params.tab === 'tutors' || params.tab === 'institutes') {
       return 'providers';
@@ -91,10 +99,6 @@ export default function ExploreScreen() {
       setResultTab('providers');
     }
   }, [params.q, params.serviceType, params.type, params.result, params.tab]);
-
-  useEffect(() => {
-    setProviderType('all');
-  }, [serviceType]);
 
   useEffect(() => {
     const order = isRTL
@@ -122,15 +126,11 @@ export default function ExploreScreen() {
   const coursesQuery = useCourses({
     q: query || undefined,
     serviceType,
-    providerType: providerType === 'all' ? undefined : providerType,
     pageSize: layout.courseColumns * 4,
   });
 
-  const tutorProviderFilter =
-    providerType === 'Teacher' || providerType === 'Trainer' ? providerType : undefined;
   const tutorsQuery = useTutors({
     q: query || undefined,
-    providerType: tutorProviderFilter,
     pageSize: 20,
   });
   const institutesQuery = useInstitutes({
@@ -155,7 +155,21 @@ export default function ExploreScreen() {
       ? coursesQuery.isError
       : tutorsQuery.isError || institutesQuery.isError;
 
-  const courses = coursesQuery.data?.data ?? [];
+  const coursesRaw = coursesQuery.data?.data ?? [];
+  const courses = useMemo(() => {
+    let list = [...coursesRaw];
+    if (formatFilter !== 'all') {
+      list = list.filter((c) => c.format === formatFilter);
+    }
+    if (sortBy === 'priceAsc') {
+      list.sort((a, b) => coursePrice(a) - coursePrice(b));
+    } else if (sortBy === 'priceDesc') {
+      list.sort((a, b) => coursePrice(b) - coursePrice(a));
+    } else if (sortBy === 'rating') {
+      list.sort((a, b) => (b.ratingAvg ?? 0) - (a.ratingAvg ?? 0));
+    }
+    return list;
+  }, [coursesRaw, formatFilter, sortBy]);
   const tutors = tutorsQuery.data?.data ?? [];
   const institutes = institutesQuery.data?.data ?? [];
 
@@ -170,33 +184,45 @@ export default function ExploreScreen() {
       allowedProviders.includes('Trainer');
     const showInstitutes = !serviceType || allowedProviders.includes('Institute');
 
-    if (providerType === 'all' || providerType === 'Teacher' || providerType === 'Trainer') {
-      if (showTeachers) {
-        tutors.forEach((item) => {
-          const pt = item.tutorProfile?.providerType;
-          if (
-            providerType === 'all' ||
-            pt === providerType ||
-            (!pt && providerType === 'Teacher')
-          ) {
-            rows.push({ kind: 'tutor', item });
-          }
-        });
-      }
+    if (showTeachers) {
+      tutors.forEach((item) => rows.push({ kind: 'tutor', item }));
     }
-    if ((providerType === 'all' || providerType === 'Institute') && showInstitutes) {
+    if (showInstitutes) {
       institutes.forEach((item) => rows.push({ kind: 'institute', item }));
     }
     return rows;
-  }, [
-    allowedProviders,
-    courses,
-    institutes,
-    providerType,
-    resultTab,
-    serviceType,
-    tutors,
-  ]);
+  }, [allowedProviders, courses, institutes, resultTab, serviceType, tutors]);
+
+  const openFilters = () => {
+    setDraftFormat(formatFilter);
+    setDraftSort(sortBy);
+    setFilterOpen(true);
+  };
+
+  const applyFilters = () => {
+    setFormatFilter(draftFormat);
+    setSortBy(draftSort);
+    setFilterOpen(false);
+  };
+
+  const clearFilters = () => {
+    setDraftFormat('all');
+    setDraftSort('default');
+  };
+
+  const formatLabel = (value: FormatFilter) => {
+    if (value === 'all') return t('explore.all');
+    if (value === 'Online') return t('common.online');
+    if (value === 'InPerson') return t('common.inPerson');
+    return t('common.hybrid');
+  };
+
+  const sortLabel = (value: SortOption) => {
+    if (value === 'default') return t('explore.sortDefault');
+    if (value === 'priceAsc') return t('explore.sortPriceLow');
+    if (value === 'priceDesc') return t('explore.sortPriceHigh');
+    return t('explore.sortRating');
+  };
 
   const courseGap = spacing.md;
   const columns = resultTab === 'services' ? layout.courseColumns : 1;
@@ -215,14 +241,20 @@ export default function ExploreScreen() {
     <View style={styles.headerBlock}>
       <Text style={[styles.title, writing]}>{t('explore.title')}</Text>
 
-      <SearchBar
-        value={query}
-        onChangeText={setQuery}
-        placeholder={t('home.searchPlaceholder')}
-        trailingIcon="scan-outline"
-        onSubmit={refetchAll}
-        onTrailingPress={refetchAll}
-      />
+      <View style={styles.searchRow}>
+        <SearchBar
+          value={query}
+          onChangeText={setQuery}
+          placeholder={t('home.searchPlaceholder')}
+          trailingIcon="scan-outline"
+          onSubmit={refetchAll}
+          onTrailingPress={refetchAll}
+          style={styles.search}
+        />
+        <Pressable style={styles.filterBtn} hitSlop={4} onPress={openFilters}>
+          <Ionicons name="options-outline" size={20} color={colors.primary} />
+        </Pressable>
+      </View>
 
       <Text style={[styles.sectionLabel, writing]}>{t('home.whatToLearn')}</Text>
       <View style={styles.categoryRow}>
@@ -253,37 +285,6 @@ export default function ExploreScreen() {
           );
         })}
       </View>
-
-      {serviceType ? (
-        <View style={styles.providerBlock}>
-          <Text style={[styles.sectionLabel, writing]}>{t('marketplace.providerFilter')}</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.providerChips}
-          >
-            <Pressable
-              onPress={() => setProviderType('all')}
-              style={[styles.chip, providerType === 'all' && styles.chipActive]}
-            >
-              <Text style={[styles.chipText, providerType === 'all' && styles.chipTextActive]}>
-                {t('marketplace.allProviders')}
-              </Text>
-            </Pressable>
-            {allowedProviders.map((pt) => (
-              <Pressable
-                key={pt}
-                onPress={() => setProviderType(pt)}
-                style={[styles.chip, providerType === pt && styles.chipActive]}
-              >
-                <Text style={[styles.chipText, providerType === pt && styles.chipTextActive]}>
-                  {t(PROVIDER_TYPE_LABEL_KEYS[pt])}
-                </Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-        </View>
-      ) : null}
 
       <View
         style={[styles.segments, yogaDirection(false)]}
@@ -389,6 +390,39 @@ export default function ExploreScreen() {
           }}
         />
       </View>
+
+      <Modal
+        visible={filterOpen}
+        title={t('explore.filters')}
+        onClose={() => setFilterOpen(false)}
+      >
+        <Text style={styles.filterSection}>{t('explore.format')}</Text>
+        <View style={styles.filterChips}>
+          {(['all', 'Online', 'InPerson', 'Hybrid'] as FormatFilter[]).map((value) => (
+            <Chip
+              key={value}
+              label={formatLabel(value)}
+              selected={draftFormat === value}
+              onPress={() => setDraftFormat(value)}
+            />
+          ))}
+        </View>
+        <Text style={styles.filterSection}>{t('explore.sort')}</Text>
+        <View style={styles.filterChips}>
+          {(['default', 'priceAsc', 'priceDesc', 'rating'] as SortOption[]).map((value) => (
+            <Chip
+              key={value}
+              label={sortLabel(value)}
+              selected={draftSort === value}
+              onPress={() => setDraftSort(value)}
+            />
+          ))}
+        </View>
+        <View style={styles.filterActions}>
+          <Button title={t('explore.clearFilters')} variant="ghost" onPress={clearFilters} />
+          <Button title={t('explore.applyFilters')} onPress={applyFilters} />
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -444,28 +478,37 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontWeight: '800',
   },
-  providerBlock: { gap: spacing.sm },
-  providerChips: { gap: spacing.sm, paddingVertical: 2 },
-  chip: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.full,
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  search: { flex: 1 },
+  filterBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: radius.lg,
     backgroundColor: colors.white,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadows.sm,
   },
-  chipActive: {
-    backgroundColor: colors.lavenderSoft,
-    borderColor: colors.lavender,
-  },
-  chipText: {
+  filterSection: {
     ...typography.caption,
     color: colors.textSecondary,
-    fontWeight: '600',
+    fontWeight: '700',
+    marginTop: spacing.xs,
   },
-  chipTextActive: {
-    color: colors.primary,
-    fontWeight: '800',
+  filterChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  filterActions: {
+    gap: spacing.sm,
+    marginTop: spacing.sm,
   },
   segments: {
     flexDirection: 'row',

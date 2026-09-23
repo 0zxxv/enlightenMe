@@ -1,12 +1,19 @@
+import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
+import * as ImagePicker from 'expo-image-picker';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/Button';
 import { Chip } from '@/components/Chip';
+import { CourseCard } from '@/components/CourseCard';
 import { ErrorState } from '@/components/ErrorState';
 import { LoadingState } from '@/components/LoadingState';
 import { TextInput } from '@/components/TextInput';
+import { COURSE_SKILL_OPTIONS, SCHOOL_STAGES } from '@/constants/catalog';
+import { LOCAL_COURSE_IMAGES } from '@/utils/courseImages';
+import { SERVICE_TYPE_SINGULAR_KEYS, normalizeServiceType } from '@/domain/marketplace';
 import { useTranslation } from '@/i18n';
 import { listCategories, type CategoryNode } from '@/services/api/categories';
 import {
@@ -18,11 +25,10 @@ import {
 } from '@/services/api/courses';
 import { colors, radius, shadows, spacing, typography } from '@/theme';
 import { ApiError } from '@/types/api';
-import type { CourseFormat, ServiceType } from '@/types/models';
-import { SERVICE_TYPE_SINGULAR_KEYS, normalizeServiceType } from '@/domain/marketplace';
+import type { Course, CourseFormat, ServiceType } from '@/types/models';
 import { formatDate, formatTime } from '@/utils/format';
 
-type Step = 'serviceType' | 'basics' | 'category' | 'details' | 'schedule' | 'review';
+type WizardStep = 1 | 2 | 3 | 4;
 
 type DraftSession = {
   key: string;
@@ -31,21 +37,28 @@ type DraftSession = {
   existingId?: string;
 };
 
-const STEPS: Step[] = ['serviceType', 'basics', 'category', 'details', 'schedule', 'review'];
+const STEPS: WizardStep[] = [1, 2, 3, 4];
+const HOURS = Array.from({ length: 13 }, (_, i) => i + 8);
+const MINUTES = ['00', '15', '30', '45'] as const;
 
-function typeFromParent(parent: CategoryNode | undefined): ServiceType {
-  const slug = (parent?.slug ?? '').toLowerCase();
-  if (slug.includes('school')) return 'SchoolCourse';
-  if (slug.includes('university')) return 'UniversityCourse';
-  if (slug.includes('skill')) return 'TrainingSkill';
-  const name = (parent?.nameEn ?? '').toLowerCase();
-  if (name.includes('school')) return 'SchoolCourse';
-  if (name.includes('university')) return 'UniversityCourse';
-  return 'TrainingSkill';
-}
-
-function categoryLabel(node: CategoryNode, language: string) {
-  return language === 'ar' ? node.nameAr : node.nameEn;
+function resolveCategoryId(
+  parents: CategoryNode[],
+  serviceType: ServiceType,
+): string | undefined {
+  const matchParent = parents.find((parent) => {
+    const slug = (parent.slug ?? '').toLowerCase();
+    const name = (parent.nameEn ?? '').toLowerCase();
+    if (serviceType === 'SchoolCourse') {
+      return slug.includes('school') || name.includes('school');
+    }
+    if (serviceType === 'UniversityCourse') {
+      return slug.includes('university') || name.includes('university');
+    }
+    return slug.includes('skill') || slug.includes('training') || name.includes('skill');
+  });
+  if (!matchParent) return undefined;
+  const children = matchParent.children ?? [];
+  return children[0]?.id ?? matchParent.id;
 }
 
 function toIso(date: string, time: string) {
@@ -67,6 +80,18 @@ function splitIso(iso: string): { date: string; time: string } {
   };
 }
 
+function daysInMonth(year: number, month: number) {
+  return new Date(year, month + 1, 0).getDate();
+}
+
+function startWeekday(year: number, month: number) {
+  return new Date(year, month, 1).getDay();
+}
+
+function isHttpsUrl(uri: string | undefined) {
+  return Boolean(uri && /^https:\/\//i.test(uri));
+}
+
 export default function CreateCourseScreen() {
   const { t, language } = useTranslation();
   const router = useRouter();
@@ -75,26 +100,30 @@ export default function CreateCourseScreen() {
   const courseId = typeof courseIdParam === 'string' ? courseIdParam : undefined;
   const isEdit = Boolean(courseId);
 
-  const [step, setStep] = useState<Step>('serviceType');
+  const [step, setStep] = useState<WizardStep>(1);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [parentId, setParentId] = useState<string>();
-  const [categoryId, setCategoryId] = useState<string>();
   const [serviceType, setServiceType] = useState<ServiceType>('TrainingSkill');
-  const [level, setLevel] = useState('');
-  const [grade, setGrade] = useState('');
+  const [skills, setSkills] = useState<string[]>([]);
+  const [customSkill, setCustomSkill] = useState('');
   const [stage, setStage] = useState('');
-  const [courseCode, setCourseCode] = useState('');
-  const [major, setMajor] = useState('');
-  const [skillCategory, setSkillCategory] = useState('');
+  const [grade, setGrade] = useState('');
   const [format, setFormat] = useState<CourseFormat>('Online');
-  const [capacity, setCapacity] = useState('10');
+  const [capacity] = useState('10');
   const [sessionCount, setSessionCount] = useState('1');
   const [durationMinutes, setDurationMinutes] = useState('60');
   const [price, setPrice] = useState('25');
+  const [paymentQrUri, setPaymentQrUri] = useState<string>();
+  const [courseImageUri, setCourseImageUri] = useState<string>();
+  const [courseImageGridKey, setCourseImageGridKey] = useState<string>();
+  const [calendarMonth, setCalendarMonth] = useState(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  });
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const [draftHour, setDraftHour] = useState(16);
+  const [draftMinute, setDraftMinute] = useState('00');
   const [sessions, setSessions] = useState<DraftSession[]>([]);
-  const [draftDate, setDraftDate] = useState('');
-  const [draftTime, setDraftTime] = useState('');
   const [error, setError] = useState<string>();
   const [saving, setSaving] = useState(false);
   const [hydrated, setHydrated] = useState(!isEdit);
@@ -110,9 +139,10 @@ export default function CreateCourseScreen() {
     enabled: Boolean(courseId),
   });
 
-  const parents = categoriesQuery.data ?? [];
-  const selectedParent = parents.find((p) => p.id === parentId);
-  const children = selectedParent?.children ?? [];
+  const stageGrades = useMemo(() => {
+    const found = SCHOOL_STAGES.find((s) => s.id === stage);
+    return found?.grades ?? [];
+  }, [stage]);
 
   useEffect(() => {
     if (!courseQuery.data || !categoriesQuery.data || hydrated) return;
@@ -122,39 +152,23 @@ export default function CreateCourseScreen() {
     setServiceType(
       normalizeServiceType(String(course.serviceType ?? course.type ?? '')) ?? 'TrainingSkill',
     );
-    setLevel(course.level ?? '');
-    setGrade(course.grade ?? '');
+    if (course.skillCategory) {
+      setSkills(
+        course.skillCategory
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean),
+      );
+    }
     setStage(course.stage ?? '');
-    setCourseCode(course.courseCode ?? '');
-    setMajor(course.major ?? '');
-    setSkillCategory(course.skillCategory ?? '');
+    setGrade(course.grade ?? '');
     setFormat(course.format);
-    setCapacity(String(course.capacity));
     setSessionCount(String(course.sessionCount));
     setDurationMinutes(String(course.durationMinutes ?? 60));
     setPrice(String(course.priceDecimal));
-    setCategoryId(course.categoryId);
-
-    const cats = categoriesQuery.data;
-    let foundParent: CategoryNode | undefined;
-    let foundChildId: string | undefined;
-    for (const parent of cats) {
-      if (parent.id === course.categoryId) {
-        foundParent = parent;
-        break;
-      }
-      const child = parent.children?.find((c) => c.id === course.categoryId);
-      if (child) {
-        foundParent = parent;
-        foundChildId = child.id;
-        break;
-      }
+    if (course.imageUrl && isHttpsUrl(course.imageUrl)) {
+      setCourseImageUri(course.imageUrl);
     }
-    if (foundParent) {
-      setParentId(foundParent.id);
-      setCategoryId(foundChildId ?? foundParent.id);
-    }
-
     const existing = (course.sessions ?? []).map((s) => {
       const parts = splitIso(s.startsAt);
       return {
@@ -168,48 +182,55 @@ export default function CreateCourseScreen() {
     setHydrated(true);
   }, [courseQuery.data, categoriesQuery.data, hydrated]);
 
-  const stepIndex = STEPS.indexOf(step);
   const stepLabel = useMemo(() => {
-    const map: Record<Step, string> = {
-      serviceType: t('marketplace.whatService'),
-      basics: t('tutorDashboard.stepBasics'),
-      category: t('tutorDashboard.stepCategory'),
-      details: t('tutorDashboard.stepDetails'),
-      schedule: t('tutorDashboard.stepSchedule'),
-      review: t('tutorDashboard.stepReview'),
+    const map: Record<WizardStep, string> = {
+      1: t('tutorDashboard.step1'),
+      2: t('tutorDashboard.step2'),
+      3: t('tutorDashboard.step3'),
+      4: t('tutorDashboard.step4'),
     };
     return map[step];
   }, [step, t]);
 
-  const canContinue = () => {
-    if (step === 'serviceType') return Boolean(serviceType);
-    if (step === 'basics') return title.trim().length > 0 && description.trim().length > 0;
-    if (step === 'category') return Boolean(categoryId);
-    if (step === 'details') {
-      return (
-        Number(capacity) > 0 &&
-        Number(sessionCount) > 0 &&
-        Number(durationMinutes) > 0 &&
-        Number(price) >= 0
-      );
-    }
-    return true;
+  const selectedDateIso = useMemo(() => {
+    if (!selectedDay) return undefined;
+    const y = calendarMonth.getFullYear();
+    const m = calendarMonth.getMonth();
+    return `${y}-${pad(m + 1)}-${pad(selectedDay)}`;
+  }, [calendarMonth, selectedDay]);
+
+  const toggleSkill = (skill: string) => {
+    setSkills((prev) =>
+      prev.includes(skill) ? prev.filter((s) => s !== skill) : [...prev, skill],
+    );
   };
 
-  const onSelectParent = (parent: CategoryNode) => {
-    setParentId(parent.id);
-    // Prefer explicit serviceType chosen earlier; only infer if needed.
-    if (!serviceType) setServiceType(typeFromParent(parent));
-    if ((parent.children?.length ?? 0) === 0) {
-      setCategoryId(parent.id);
+  const addCustomSkill = () => {
+    const next = customSkill.trim();
+    if (!next) return;
+    setSkills((prev) => (prev.includes(next) ? prev : [...prev, next]));
+    setCustomSkill('');
+  };
+
+  const pickImage = async (kind: 'course' | 'qr') => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      quality: 0.85,
+    });
+    if (result.canceled || !result.assets[0]?.uri) return;
+    const uri = result.assets[0].uri;
+    if (kind === 'course') {
+      setCourseImageUri(uri);
+      setCourseImageGridKey(undefined);
     } else {
-      setCategoryId(undefined);
+      setPaymentQrUri(uri);
     }
   };
 
   const addSession = () => {
-    if (!draftDate.trim() || !draftTime.trim()) return;
-    if (!toIso(draftDate.trim(), draftTime.trim())) {
+    if (!selectedDateIso) return;
+    const time = `${pad(draftHour)}:${draftMinute}`;
+    if (!toIso(selectedDateIso, time)) {
       setError(t('common.error'));
       return;
     }
@@ -218,35 +239,52 @@ export default function CreateCourseScreen() {
       ...prev,
       {
         key: `local-${Date.now()}-${prev.length}`,
-        date: draftDate.trim(),
-        time: draftTime.trim(),
+        date: selectedDateIso,
+        time,
       },
     ]);
-    setDraftDate('');
-    setDraftTime('');
+    setSelectedDay(null);
   };
 
   const removeSession = (key: string) => {
     setSessions((prev) => prev.filter((s) => s.key !== key));
   };
 
-  const buildPayload = () => ({
-    title: title.trim(),
-    description: description.trim(),
-    categoryId: categoryId!,
-    serviceType,
-    level: level.trim() || undefined,
-    grade: serviceType === 'SchoolCourse' ? grade.trim() || undefined : undefined,
-    stage: serviceType === 'SchoolCourse' ? stage.trim() || undefined : undefined,
-    courseCode: serviceType === 'UniversityCourse' ? courseCode.trim() || undefined : undefined,
-    major: serviceType === 'UniversityCourse' ? major.trim() || undefined : undefined,
-    skillCategory: serviceType === 'TrainingSkill' ? skillCategory.trim() || undefined : undefined,
-    format,
-    capacity: Number(capacity),
-    sessionCount: Number(sessionCount),
-    durationMinutes: Number(durationMinutes),
-    priceDecimal: Number(price),
-  });
+  const canContinue = () => {
+    if (step === 1) {
+      return title.trim().length > 0 && description.trim().length > 0 && Boolean(serviceType);
+    }
+    if (step === 2) {
+      const nums =
+        Number(sessionCount) > 0 &&
+        Number(durationMinutes) > 0 &&
+        Number(price) >= 0;
+      if (serviceType === 'SchoolCourse') {
+        return nums && Boolean(stage) && Boolean(grade);
+      }
+      return nums;
+    }
+    return true;
+  };
+
+  const buildPayload = (categoryId: string) => {
+    const imageUrl = isHttpsUrl(courseImageUri) ? courseImageUri : undefined;
+    return {
+      title: title.trim(),
+      description: description.trim(),
+      categoryId,
+      serviceType,
+      skillCategory: skills.length ? skills.join(', ') : undefined,
+      grade: serviceType === 'SchoolCourse' ? grade || undefined : undefined,
+      stage: serviceType === 'SchoolCourse' ? stage || undefined : undefined,
+      format,
+      capacity: Number(capacity),
+      sessionCount: Number(sessionCount),
+      durationMinutes: Number(durationMinutes),
+      priceDecimal: Number(price),
+      imageUrl,
+    };
+  };
 
   const persistSessions = async (id: string) => {
     const duration = Number(durationMinutes) || 60;
@@ -266,6 +304,8 @@ export default function CreateCourseScreen() {
   };
 
   const saveCourse = async (publish: boolean) => {
+    const parents = categoriesQuery.data ?? [];
+    const categoryId = resolveCategoryId(parents, serviceType);
     if (!categoryId) {
       setError(t('tutorDashboard.selectCategory'));
       return;
@@ -278,7 +318,7 @@ export default function CreateCourseScreen() {
     setSaving(true);
     setError(undefined);
     try {
-      const payload = buildPayload();
+      const payload = buildPayload(categoryId);
       let id = courseId;
       if (id) {
         await updateCourse(id, payload);
@@ -301,6 +341,70 @@ export default function CreateCourseScreen() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const previewCourse = useMemo((): Course => {
+    const previewTitle =
+      courseImageGridKey && !courseImageUri
+        ? `${title.trim()} ${courseImageGridKey}`
+        : title.trim();
+    return {
+      id: 'preview',
+      title: previewTitle || t('tutorDashboard.courseTitle'),
+      description: description.trim() || '—',
+      categoryId: '',
+      serviceType,
+      skillCategory: skills.join(', ') || null,
+      priceDecimal: Number(price) || 0,
+      currency: 'BHD',
+      sessionCount: Number(sessionCount) || 1,
+      capacity: Number(capacity) || 10,
+      format,
+      durationMinutes: Number(durationMinutes) || 60,
+      status: 'Draft',
+      ratingAvg: 0,
+      ratingCount: 0,
+      imageUrl: courseImageUri ?? null,
+      grade: grade || null,
+      stage: stage || null,
+    };
+  }, [
+    capacity,
+    courseImageGridKey,
+    courseImageUri,
+    description,
+    format,
+    grade,
+    price,
+    serviceType,
+    sessionCount,
+    skills,
+    stage,
+    durationMinutes,
+    t,
+    title,
+  ]);
+
+  const calendarCells = useMemo(() => {
+    const year = calendarMonth.getFullYear();
+    const month = calendarMonth.getMonth();
+    const total = daysInMonth(year, month);
+    const leading = startWeekday(year, month);
+    const cells: (number | null)[] = [];
+    for (let i = 0; i < leading; i += 1) cells.push(null);
+    for (let d = 1; d <= total; d += 1) cells.push(d);
+    return cells;
+  }, [calendarMonth]);
+
+  const monthLabel = calendarMonth.toLocaleDateString(language === 'ar' ? 'ar-BH' : 'en-US', {
+    month: 'long',
+    year: 'numeric',
+  });
+
+  const formatChipLabel = (value: CourseFormat) => {
+    if (value === 'Online') return t('common.online');
+    if (value === 'InPerson') return t('common.inPerson');
+    return t('common.hybrid');
   };
 
   const loading =
@@ -354,42 +458,61 @@ export default function CreateCourseScreen() {
       <ScrollView style={styles.root} contentContainerStyle={styles.content}>
         <View style={styles.progress}>
           <Text style={styles.progressLabel}>
-            {stepIndex + 1}/{STEPS.length} · {stepLabel}
+            {step}/{STEPS.length} · {stepLabel}
           </Text>
           <View style={styles.progressTrack}>
-            {STEPS.map((s, i) => (
+            {STEPS.map((s) => (
               <View
                 key={s}
-                style={[styles.progressDot, i <= stepIndex ? styles.progressDotActive : null]}
+                style={[styles.progressDot, s <= step ? styles.progressDotActive : null]}
               />
             ))}
           </View>
         </View>
 
-        {step === 'serviceType' ? (
+        {step === 1 ? (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>{t('marketplace.whatService')}</Text>
             <View style={styles.chipWrap}>
-              {(
-                [
-                  'SchoolCourse',
-                  'UniversityCourse',
-                  'TrainingSkill',
-                ] as ServiceType[]
-              ).map((value) => (
+              {(['SchoolCourse', 'UniversityCourse', 'TrainingSkill'] as ServiceType[]).map(
+                (value) => (
+                  <Chip
+                    key={value}
+                    label={t(SERVICE_TYPE_SINGULAR_KEYS[value])}
+                    selected={serviceType === value}
+                    onPress={() => {
+                      setServiceType(value);
+                      if (value !== 'SchoolCourse') {
+                        setStage('');
+                        setGrade('');
+                      }
+                    }}
+                  />
+                ),
+              )}
+            </View>
+
+            <Text style={styles.sectionTitle}>{t('tutorDashboard.skills')}</Text>
+            <View style={styles.chipWrap}>
+              {COURSE_SKILL_OPTIONS.map((skill) => (
                 <Chip
-                  key={value}
-                  label={t(SERVICE_TYPE_SINGULAR_KEYS[value])}
-                  selected={serviceType === value}
-                  onPress={() => setServiceType(value)}
+                  key={skill}
+                  label={skill}
+                  selected={skills.includes(skill)}
+                  onPress={() => toggleSkill(skill)}
                 />
               ))}
             </View>
-          </View>
-        ) : null}
+            <View style={styles.addSkillRow}>
+              <TextInput
+                value={customSkill}
+                onChangeText={setCustomSkill}
+                placeholder={t('tutorDashboard.customSkillPlaceholder')}
+                style={styles.addSkillInput}
+              />
+              <Button title={t('tutorDashboard.addSkill')} variant="secondary" onPress={addCustomSkill} />
+            </View>
 
-        {step === 'basics' ? (
-          <View style={styles.section}>
             <TextInput
               label={t('tutorDashboard.courseTitle')}
               value={title}
@@ -405,105 +528,54 @@ export default function CreateCourseScreen() {
           </View>
         ) : null}
 
-        {step === 'category' ? (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{t('tutorDashboard.selectCategory')}</Text>
-            <View style={styles.chipWrap}>
-              {parents.map((parent) => (
-                <Chip
-                  key={parent.id}
-                  label={categoryLabel(parent, language)}
-                  selected={parentId === parent.id}
-                  onPress={() => onSelectParent(parent)}
-                />
-              ))}
-            </View>
-            {children.length > 0 ? (
-              <>
-                <Text style={styles.sectionTitle}>{t('tutorDashboard.selectSubcategory')}</Text>
-                <View style={styles.chipWrap}>
-                  {children.map((child) => (
-                    <Chip
-                      key={child.id}
-                      label={categoryLabel(child, language)}
-                      selected={categoryId === child.id}
-                      onPress={() => setCategoryId(child.id)}
-                    />
-                  ))}
-                </View>
-              </>
-            ) : null}
-            <Text style={styles.hint}>
-              {t(SERVICE_TYPE_SINGULAR_KEYS[serviceType])}
-            </Text>
-          </View>
-        ) : null}
-
-        {step === 'details' ? (
+        {step === 2 ? (
           <View style={styles.section}>
             {serviceType === 'SchoolCourse' ? (
               <>
-                <TextInput
-                  label="Stage"
-                  value={stage}
-                  onChangeText={setStage}
-                  placeholder="Primary / Intermediate / Secondary"
-                />
-                <TextInput
-                  label="Grade"
-                  value={grade}
-                  onChangeText={setGrade}
-                  placeholder="10 / 11 / 12"
-                />
+                <Text style={styles.sectionTitle}>{t('tutorDashboard.stage')}</Text>
+                <View style={styles.chipWrap}>
+                  {SCHOOL_STAGES.map((item) => (
+                    <Chip
+                      key={item.id}
+                      label={language === 'ar' ? item.ar : item.en}
+                      selected={stage === item.id}
+                      onPress={() => {
+                        setStage(item.id);
+                        setGrade('');
+                      }}
+                    />
+                  ))}
+                </View>
+                {stageGrades.length > 0 ? (
+                  <>
+                    <Text style={styles.sectionTitle}>{t('tutorDashboard.grade')}</Text>
+                    <View style={styles.chipWrap}>
+                      {stageGrades.map((g) => (
+                        <Chip
+                          key={g}
+                          label={g}
+                          selected={grade === g}
+                          onPress={() => setGrade(g)}
+                        />
+                      ))}
+                    </View>
+                  </>
+                ) : null}
               </>
             ) : null}
-            {serviceType === 'UniversityCourse' ? (
-              <>
-                <TextInput
-                  label="Course code"
-                  value={courseCode}
-                  onChangeText={setCourseCode}
-                  placeholder="ITCS347"
-                  autoCapitalize="characters"
-                />
-                <TextInput
-                  label="Major / program"
-                  value={major}
-                  onChangeText={setMajor}
-                />
-              </>
-            ) : null}
-            {serviceType === 'TrainingSkill' ? (
-              <TextInput
-                label="Skill category"
-                value={skillCategory}
-                onChangeText={setSkillCategory}
-                placeholder="Design / Programming / Languages"
-              />
-            ) : null}
-            <TextInput
-              label={t('tutorDashboard.level')}
-              value={level}
-              onChangeText={setLevel}
-              placeholder="Beginner / Intermediate / Advanced"
-            />
+
             <Text style={styles.sectionTitle}>{t('tutorDashboard.format')}</Text>
             <View style={styles.chipWrap}>
               {(['Online', 'InPerson', 'Hybrid'] as CourseFormat[]).map((value) => (
                 <Chip
                   key={value}
-                  label={value}
+                  label={formatChipLabel(value)}
                   selected={format === value}
                   onPress={() => setFormat(value)}
                 />
               ))}
             </View>
-            <TextInput
-              label={t('tutorDashboard.capacity')}
-              value={capacity}
-              onChangeText={setCapacity}
-              keyboardType="number-pad"
-            />
+
             <TextInput
               label={t('tutorDashboard.sessionCount')}
               value={sessionCount}
@@ -522,27 +594,129 @@ export default function CreateCourseScreen() {
               onChangeText={setPrice}
               keyboardType="decimal-pad"
             />
+
+            <Text style={styles.sectionTitle}>{t('tutorDashboard.paymentQr')}</Text>
+            <Button
+              title={t('tutorDashboard.uploadPaymentQr')}
+              variant="secondary"
+              onPress={() => pickImage('qr')}
+            />
+            {paymentQrUri ? (
+              <Image source={{ uri: paymentQrUri }} style={styles.qrPreview} contentFit="contain" />
+            ) : null}
           </View>
         ) : null}
 
-        {step === 'schedule' ? (
+        {step === 3 ? (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{t('tutorDashboard.addSession')}</Text>
-            <TextInput
-              label={t('tutorDashboard.sessionDate')}
-              value={draftDate}
-              onChangeText={setDraftDate}
-              placeholder="2026-10-01"
-              autoCapitalize="none"
+            <Text style={styles.sectionTitle}>{t('tutorDashboard.courseImage')}</Text>
+            <Button
+              title={t('tutorDashboard.pickImage')}
+              variant="secondary"
+              onPress={() => pickImage('course')}
             />
-            <TextInput
-              label={t('tutorDashboard.sessionTime')}
-              value={draftTime}
-              onChangeText={setDraftTime}
-              placeholder="16:00"
-              autoCapitalize="none"
+            {courseImageUri ? (
+              <Image source={{ uri: courseImageUri }} style={styles.heroPreview} contentFit="cover" />
+            ) : null}
+
+            <Text style={styles.sectionTitle}>{t('tutorDashboard.pickGridImage')}</Text>
+            <View style={styles.imageGrid}>
+              {LOCAL_COURSE_IMAGES.map((entry) => (
+                <Pressable
+                  key={entry.key}
+                  style={[
+                    styles.imageGridItem,
+                    courseImageGridKey === entry.key && styles.imageGridItemSelected,
+                  ]}
+                  onPress={() => {
+                    setCourseImageGridKey(entry.key);
+                    setCourseImageUri(undefined);
+                  }}
+                >
+                  <Image source={entry.source} style={styles.imageGridThumb} contentFit="cover" />
+                </Pressable>
+              ))}
+            </View>
+
+            <Text style={styles.sectionTitle}>{t('tutorDashboard.calendar')}</Text>
+            <View style={styles.calendarHeader}>
+              <Pressable
+                onPress={() =>
+                  setCalendarMonth(
+                    (prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1),
+                  )
+                }
+                hitSlop={8}
+              >
+                <Ionicons name="chevron-back" size={22} color={colors.primary} />
+              </Pressable>
+              <Text style={styles.calendarMonth}>{monthLabel}</Text>
+              <Pressable
+                onPress={() =>
+                  setCalendarMonth(
+                    (prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1),
+                  )
+                }
+                hitSlop={8}
+              >
+                <Ionicons name="chevron-forward" size={22} color={colors.primary} />
+              </Pressable>
+            </View>
+            <View style={styles.calendarGrid}>
+              {calendarCells.map((day, index) =>
+                day === null ? (
+                  <View key={`empty-${index}`} style={styles.calendarCell} />
+                ) : (
+                  <Pressable
+                    key={day}
+                    style={[
+                      styles.calendarCell,
+                      selectedDay === day && styles.calendarCellSelected,
+                    ]}
+                    onPress={() => setSelectedDay(day)}
+                  >
+                    <Text
+                      style={[
+                        styles.calendarDayText,
+                        selectedDay === day && styles.calendarDayTextSelected,
+                      ]}
+                    >
+                      {day}
+                    </Text>
+                  </Pressable>
+                ),
+              )}
+            </View>
+
+            <Text style={styles.sectionTitle}>{t('tutorDashboard.pickTime')}</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.timeScroll}>
+              <View style={styles.chipWrap}>
+                {HOURS.map((h) => (
+                  <Chip
+                    key={h}
+                    label={pad(h)}
+                    selected={draftHour === h}
+                    onPress={() => setDraftHour(h)}
+                  />
+                ))}
+              </View>
+            </ScrollView>
+            <View style={styles.chipWrap}>
+              {MINUTES.map((m) => (
+                <Chip
+                  key={m}
+                  label={m}
+                  selected={draftMinute === m}
+                  onPress={() => setDraftMinute(m)}
+                />
+              ))}
+            </View>
+            <Button
+              title={t('tutorDashboard.addSession')}
+              variant="secondary"
+              onPress={addSession}
+              disabled={!selectedDateIso}
             />
-            <Button title={t('tutorDashboard.addSession')} variant="secondary" onPress={addSession} />
 
             <Text style={styles.sectionTitle}>{t('tutorDashboard.sessionsAdded')}</Text>
             {sessions.length === 0 ? (
@@ -558,9 +732,6 @@ export default function CreateCourseScreen() {
                           ? `${formatDate(iso, language)} · ${formatTime(iso, language)}`
                           : `${session.date} ${session.time}`}
                       </Text>
-                      {session.existingId ? (
-                        <Text style={styles.hint}>{session.existingId.slice(0, 8)}…</Text>
-                      ) : null}
                     </View>
                     {!session.existingId ? (
                       <Pressable onPress={() => removeSession(session.key)} hitSlop={8}>
@@ -574,39 +745,27 @@ export default function CreateCourseScreen() {
           </View>
         ) : null}
 
-        {step === 'review' ? (
-          <View style={styles.reviewCard}>
-            <Text style={styles.reviewTitle}>{title}</Text>
-            <Text style={styles.reviewBody}>{description}</Text>
-            <Text style={styles.hint}>
-              {t(SERVICE_TYPE_SINGULAR_KEYS[serviceType])} · {format} · {t('tutorDashboard.capacity')}{' '}
-              {capacity}
-            </Text>
-            <Text style={styles.hint}>
-              {t('tutorDashboard.sessionCount')}: {sessionCount} · {t('tutorDashboard.price')}:{' '}
-              {price}
-            </Text>
-            <Text style={styles.hint}>
-              {t('tutorDashboard.sessionsAdded')}: {sessions.length}
-            </Text>
+        {step === 4 ? (
+          <View style={styles.section}>
+            <CourseCard course={previewCourse} showFavorite={false} variant="featured" />
           </View>
         ) : null}
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
 
         <View style={styles.actions}>
-          {stepIndex > 0 ? (
+          {step > 1 ? (
             <Button
               title={t('tutorDashboard.back')}
               variant="ghost"
-              onPress={() => setStep(STEPS[stepIndex - 1])}
+              onPress={() => setStep((step - 1) as WizardStep)}
               disabled={saving}
             />
           ) : null}
-          {step !== 'review' ? (
+          {step < 4 ? (
             <Button
               title={t('tutorDashboard.next')}
-              onPress={() => setStep(STEPS[stepIndex + 1])}
+              onPress={() => setStep((step + 1) as WizardStep)}
               disabled={!canContinue() || saving}
             />
           ) : (
@@ -647,7 +806,76 @@ const styles = StyleSheet.create({
   sectionTitle: { ...typography.subheading, color: colors.text, fontSize: 16 },
   chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   multiline: { minHeight: 120, textAlignVertical: 'top' },
+  addSkillRow: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.sm },
+  addSkillInput: { flex: 1 },
   hint: { ...typography.caption, color: colors.textMuted },
+  qrPreview: {
+    width: '100%',
+    height: 160,
+    borderRadius: radius.lg,
+    backgroundColor: colors.white,
+  },
+  heroPreview: {
+    width: '100%',
+    height: 180,
+    borderRadius: radius.xl,
+    backgroundColor: colors.border,
+  },
+  imageGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  imageGridItem: {
+    width: '30%',
+    aspectRatio: 1,
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  imageGridItemSelected: {
+    borderColor: colors.primary,
+  },
+  imageGridThumb: {
+    width: '100%',
+    height: '100%',
+  },
+  calendarHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  calendarMonth: {
+    ...typography.subheading,
+    color: colors.text,
+    fontSize: 16,
+  },
+  calendarGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  calendarCell: {
+    width: `${100 / 7}%`,
+    aspectRatio: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 2,
+  },
+  calendarCellSelected: {
+    backgroundColor: colors.lavenderSoft,
+    borderRadius: radius.full,
+  },
+  calendarDayText: {
+    ...typography.body,
+    color: colors.text,
+    fontWeight: '600',
+  },
+  calendarDayTextSelected: {
+    color: colors.primary,
+    fontWeight: '800',
+  },
+  timeScroll: { flexGrow: 0 },
   sessionRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -661,15 +889,6 @@ const styles = StyleSheet.create({
   sessionInfo: { flex: 1, gap: spacing.xxs },
   sessionTitle: { ...typography.body, color: colors.text, fontWeight: '600' },
   remove: { ...typography.caption, color: colors.error, fontWeight: '700' },
-  reviewCard: {
-    backgroundColor: colors.white,
-    borderRadius: radius.xl,
-    padding: spacing.xl,
-    gap: spacing.sm,
-    ...shadows.sm,
-  },
-  reviewTitle: { ...typography.heading, color: colors.text, fontSize: 22 },
-  reviewBody: { ...typography.body, color: colors.textSecondary, lineHeight: 22 },
   error: { ...typography.caption, color: colors.error },
   actions: { gap: spacing.sm, marginTop: spacing.sm },
 });

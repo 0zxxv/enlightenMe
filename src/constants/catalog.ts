@@ -13,6 +13,33 @@ export const POPULAR_SUBJECTS = [
   { id: 'blender', en: 'Blender', ar: 'بلندر', icon: 'cube-outline' as IconName, tint: '#9A6B1F', soft: '#F7EED9' },
   { id: 'biology', en: 'Biology', ar: 'الأحياء', icon: 'leaf-outline' as IconName, tint: '#2F6B4F', soft: '#E4F2EA' },
   { id: 'history', en: 'History', ar: 'التاريخ', icon: 'time-outline' as IconName, tint: '#8A5A3A', soft: '#F3E8E0' },
+  { id: 'arabic', en: 'Arabic', ar: 'العربية', icon: 'language-outline' as IconName, tint: '#2C245C', soft: '#E6DFF0' },
+  { id: 'design', en: 'Design', ar: 'التصميم', icon: 'color-palette-outline' as IconName, tint: '#6B4C9A', soft: '#EDE6F5' },
+  { id: 'coding', en: 'Coding', ar: 'البرمجة', icon: 'code-slash-outline' as IconName, tint: '#3A5A8C', soft: '#E6EEF7' },
+  { id: 'music', en: 'Music', ar: 'الموسيقى', icon: 'musical-notes-outline' as IconName, tint: '#9A6B1F', soft: '#F7EED9' },
+] as const;
+
+export const SCHOOL_STAGES = [
+  { id: 'Primary', en: 'Primary', ar: 'ابتدائي', grades: ['1', '2', '3', '4', '5', '6'] },
+  { id: 'Intermediate', en: 'Intermediate', ar: 'إعدادي', grades: ['7', '8', '9'] },
+  { id: 'Secondary', en: 'Secondary', ar: 'ثانوي', grades: ['10', '11', '12'] },
+] as const;
+
+/** Skills tutors can assign when creating a course. */
+export const COURSE_SKILL_OPTIONS = [
+  'Mathematics',
+  'Physics',
+  'Chemistry',
+  'Biology',
+  'English',
+  'Arabic',
+  'Algorithms',
+  'Programming',
+  'Blender 3D',
+  'Design',
+  'IELTS',
+  'History',
+  'Music',
 ] as const;
 
 /** Primary marketplace service categories (not providers). */

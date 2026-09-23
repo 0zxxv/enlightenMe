@@ -1,7 +1,8 @@
 export function formatPrice(amount: number | string, currency = 'BHD') {
   const value = typeof amount === 'string' ? Number(amount) : amount;
-  if (Number.isNaN(value)) return `${currency} —`;
-  return `${currency} ${value.toFixed(3)}`;
+  if (Number.isNaN(value)) return `— ${currency}`;
+  const whole = Math.round(value);
+  return `${whole} ${currency}`;
 }
 
 export function fullName(first?: string | null, last?: string | null) {
