@@ -191,9 +191,15 @@ export default function RegisterScreen() {
                         <Pressable
                           key={value}
                           onPress={() => setLearnerType(value)}
-                          style={[styles.roleCard, selected && styles.roleCardSelected]}
+                          style={[styles.learnerCard, selected && styles.roleCardSelected]}
                         >
-                          <Text style={[styles.roleLabel, selected && styles.roleLabelSelected]}>
+                          <Text
+                            style={[
+                              styles.learnerLabel,
+                              selected && styles.roleLabelSelected,
+                            ]}
+                            numberOfLines={2}
+                          >
                             {t(LEARNER_TYPE_LABEL_KEYS[value])}
                           </Text>
                         </Pressable>
@@ -482,6 +488,19 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     minHeight: 84,
   },
+  learnerCard: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.xs,
+    borderRadius: radius.lg,
+    backgroundColor: colors.white,
+    borderWidth: 1.5,
+    borderColor: colors.border,
+    minHeight: 44,
+    maxHeight: 52,
+  },
   roleCardSelected: {
     backgroundColor: colors.lavenderSoft,
     borderColor: colors.lavender,
@@ -491,6 +510,14 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontWeight: '600',
     fontSize: 13,
+  },
+  learnerLabel: {
+    ...typography.caption,
+    color: colors.textMuted,
+    fontWeight: '600',
+    fontSize: 12,
+    textAlign: 'center',
+    lineHeight: 16,
   },
   roleLabelSelected: {
     color: colors.primary,

@@ -10,6 +10,11 @@ import {
   Text,
   View,
 } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CourseCard } from '@/components/CourseCard';
 import { EmptyState } from '@/components/EmptyState';
@@ -35,8 +40,15 @@ import { useRefresh } from '@/hooks/useRefresh';
 import { useTranslation } from '@/i18n';
 import { colors, radius, spacing, typography } from '@/theme';
 import type { Course, Institute, Tutor } from '@/types/models';
+import { yogaDirection } from '@/utils/rtl';
 
 type ResultTab = 'services' | 'providers';
+type ListRow =
+  | { kind: 'course'; item: Course }
+  | { kind: 'tutor'; item: Tutor }
+  | { kind: 'institute'; item: Institute };
+
+const SEGMENT_PAD = 4;
 
 export default function ExploreScreen() {
   const { t, isRTL } = useTranslation();
@@ -61,6 +73,12 @@ export default function ExploreScreen() {
     }
     return 'services';
   });
+  const [trackWidth, setTrackWidth] = useState(0);
+  const progress = useSharedValue(0);
+
+  const tabOrder = isRTL
+    ? (['providers', 'services'] as const)
+    : (['services', 'providers'] as const);
 
   useEffect(() => {
     if (typeof params.q === 'string') setQuery(params.q);
@@ -77,6 +95,27 @@ export default function ExploreScreen() {
   useEffect(() => {
     setProviderType('all');
   }, [serviceType]);
+
+  useEffect(() => {
+    const order = isRTL
+      ? (['providers', 'services'] as const)
+      : (['services', 'providers'] as const);
+    const index = order.indexOf(resultTab);
+    progress.value = withSpring(index < 0 ? 0 : index, {
+      damping: 18,
+      stiffness: 220,
+      mass: 0.7,
+    });
+  }, [isRTL, progress, resultTab]);
+
+  const pillStyle = useAnimatedStyle(() => {
+    const inner = Math.max(trackWidth - SEGMENT_PAD * 2, 0);
+    const half = inner / 2;
+    return {
+      width: half || 1,
+      transform: [{ translateX: progress.value * half }],
+    };
+  });
 
   const allowedProviders = serviceType ? providersForService(serviceType) : [];
 
@@ -120,10 +159,11 @@ export default function ExploreScreen() {
   const tutors = tutorsQuery.data?.data ?? [];
   const institutes = institutesQuery.data?.data ?? [];
 
-  const providerRows = useMemo(() => {
-    const rows: Array<
-      { kind: 'tutor'; item: Tutor } | { kind: 'institute'; item: Institute }
-    > = [];
+  const listData = useMemo((): ListRow[] => {
+    if (resultTab === 'services') {
+      return courses.map((item) => ({ kind: 'course' as const, item }));
+    }
+    const rows: ListRow[] = [];
     const showTeachers =
       !serviceType ||
       allowedProviders.includes('Teacher') ||
@@ -134,7 +174,11 @@ export default function ExploreScreen() {
       if (showTeachers) {
         tutors.forEach((item) => {
           const pt = item.tutorProfile?.providerType;
-          if (providerType === 'all' || pt === providerType || (!pt && providerType === 'Teacher')) {
+          if (
+            providerType === 'all' ||
+            pt === providerType ||
+            (!pt && providerType === 'Teacher')
+          ) {
             rows.push({ kind: 'tutor', item });
           }
         });
@@ -144,10 +188,18 @@ export default function ExploreScreen() {
       institutes.forEach((item) => rows.push({ kind: 'institute', item }));
     }
     return rows;
-  }, [tutors, institutes, providerType, serviceType, allowedProviders]);
+  }, [
+    allowedProviders,
+    courses,
+    institutes,
+    providerType,
+    resultTab,
+    serviceType,
+    tutors,
+  ]);
 
   const courseGap = spacing.md;
-  const columns = layout.courseColumns;
+  const columns = resultTab === 'services' ? layout.courseColumns : 1;
   const writing = {
     textAlign: (isRTL ? 'right' : 'left') as 'left' | 'right',
     writingDirection: (isRTL ? 'rtl' : 'ltr') as 'rtl' | 'ltr',
@@ -158,6 +210,118 @@ export default function ExploreScreen() {
     tutorsQuery.refetch();
     institutesQuery.refetch();
   };
+
+  const listHeader = (
+    <View style={styles.headerBlock}>
+      <Text style={[styles.title, writing]}>{t('explore.title')}</Text>
+
+      <SearchBar
+        value={query}
+        onChangeText={setQuery}
+        placeholder={t('home.searchPlaceholder')}
+        trailingIcon="scan-outline"
+        onSubmit={refetchAll}
+        onTrailingPress={refetchAll}
+      />
+
+      <Text style={[styles.sectionLabel, writing]}>{t('home.whatToLearn')}</Text>
+      <View style={styles.categoryRow}>
+        {SERVICE_CATEGORY_CHIPS.map((chip) => {
+          const selected = serviceType === chip.id;
+          return (
+            <Pressable
+              key={chip.id}
+              style={styles.categoryItem}
+              onPress={() => {
+                setServiceType((prev) => (prev === chip.id ? undefined : chip.id));
+                setResultTab('services');
+              }}
+            >
+              <View
+                style={[
+                  styles.categoryIcon,
+                  { backgroundColor: chip.soft },
+                  selected && styles.categoryIconSelected,
+                ]}
+              >
+                <Ionicons name={chip.icon} size={26} color={chip.tint} />
+              </View>
+              <Text style={[styles.categoryLabel, selected && styles.categoryLabelSelected]}>
+                {t(chip.labelKey)}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      {serviceType ? (
+        <View style={styles.providerBlock}>
+          <Text style={[styles.sectionLabel, writing]}>{t('marketplace.providerFilter')}</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.providerChips}
+          >
+            <Pressable
+              onPress={() => setProviderType('all')}
+              style={[styles.chip, providerType === 'all' && styles.chipActive]}
+            >
+              <Text style={[styles.chipText, providerType === 'all' && styles.chipTextActive]}>
+                {t('marketplace.allProviders')}
+              </Text>
+            </Pressable>
+            {allowedProviders.map((pt) => (
+              <Pressable
+                key={pt}
+                onPress={() => setProviderType(pt)}
+                style={[styles.chip, providerType === pt && styles.chipActive]}
+              >
+                <Text style={[styles.chipText, providerType === pt && styles.chipTextActive]}>
+                  {t(PROVIDER_TYPE_LABEL_KEYS[pt])}
+                </Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
+      ) : null}
+
+      <View
+        style={[styles.segments, yogaDirection(false)]}
+        onLayout={(e) => setTrackWidth(e.nativeEvent.layout.width)}
+      >
+        <Animated.View style={[styles.segmentPill, pillStyle]} />
+        {tabOrder.map((id) => {
+          const active = resultTab === id;
+          return (
+            <Pressable
+              key={id}
+              onPress={() => setResultTab(id)}
+              style={styles.segment}
+              accessibilityRole="button"
+              accessibilityState={{ selected: active }}
+            >
+              <Text style={[styles.segmentText, active && styles.segmentTextActive]}>
+                {id === 'services' ? t('marketplace.services') : t('marketplace.providers')}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      {isError && !isLoading ? <ErrorState onRetry={refetchAll} /> : null}
+      {isLoading ? <LoadingState /> : null}
+
+      {!isLoading && !isError ? (
+        <SectionHeader
+          title={
+            resultTab === 'services'
+              ? t('marketplace.services')
+              : t('marketplace.serviceProviders')
+          }
+        />
+      ) : null}
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -173,115 +337,35 @@ export default function ExploreScreen() {
           },
         ]}
       >
-        <Text style={[styles.title, writing]}>{t('explore.title')}</Text>
-
-        <SearchBar
-          value={query}
-          onChangeText={setQuery}
-          placeholder={t('home.searchPlaceholder')}
-          trailingIcon="scan-outline"
-          onSubmit={refetchAll}
-          onTrailingPress={refetchAll}
-        />
-
-        <Text style={[styles.sectionLabel, writing]}>{t('home.whatToLearn')}</Text>
-        <View style={styles.categoryRow}>
-          {SERVICE_CATEGORY_CHIPS.map((chip) => {
-            const selected = serviceType === chip.id;
-            return (
-              <Pressable
-                key={chip.id}
-                style={styles.categoryItem}
-                onPress={() => {
-                  setServiceType((prev) => (prev === chip.id ? undefined : chip.id));
-                  setResultTab('services');
-                }}
-              >
-                <View
-                  style={[
-                    styles.categoryIcon,
-                    { backgroundColor: chip.soft },
-                    selected && styles.categoryIconSelected,
-                  ]}
-                >
-                  <Ionicons name={chip.icon} size={26} color={chip.tint} />
-                </View>
-                <Text style={[styles.categoryLabel, selected && styles.categoryLabelSelected]}>
-                  {t(chip.labelKey)}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-
-        {serviceType ? (
-          <View style={styles.providerBlock}>
-            <Text style={[styles.sectionLabel, writing]}>{t('marketplace.providerFilter')}</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.providerChips}>
-              <Pressable
-                onPress={() => setProviderType('all')}
-                style={[styles.chip, providerType === 'all' && styles.chipActive]}
-              >
-                <Text style={[styles.chipText, providerType === 'all' && styles.chipTextActive]}>
-                  {t('marketplace.allProviders')}
-                </Text>
-              </Pressable>
-              {allowedProviders.map((pt) => (
-                <Pressable
-                  key={pt}
-                  onPress={() => setProviderType(pt)}
-                  style={[styles.chip, providerType === pt && styles.chipActive]}
-                >
-                  <Text style={[styles.chipText, providerType === pt && styles.chipTextActive]}>
-                    {t(PROVIDER_TYPE_LABEL_KEYS[pt])}
-                  </Text>
-                </Pressable>
-              ))}
-            </ScrollView>
-          </View>
-        ) : null}
-
-        <View style={styles.segments}>
-          {(
-            [
-              { id: 'services' as const, label: t('marketplace.services') },
-              { id: 'providers' as const, label: t('marketplace.providers') },
-            ] as const
-          ).map((item) => {
-            const active = resultTab === item.id;
-            return (
-              <Pressable
-                key={item.id}
-                onPress={() => setResultTab(item.id)}
-                style={[styles.segment, active && styles.segmentActive]}
-              >
-                <Text style={[styles.segmentText, active && styles.segmentTextActive]}>
-                  {item.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-
-        {isError && !isLoading ? <ErrorState onRetry={refetchAll} /> : null}
-        {isLoading ? <LoadingState /> : null}
-
-        {!isLoading && !isError && resultTab === 'services' ? (
-          <>
-            <SectionHeader title={t('marketplace.services')} />
-            <FlatList
-              key={`services-${columns}-${serviceType ?? 'all'}-${providerType}`}
-              data={courses}
-              keyExtractor={(item) => item.id}
-              numColumns={columns}
-              contentContainerStyle={styles.list}
-              columnWrapperStyle={columns > 1 ? styles.columnWrap : undefined}
-              refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-              ListEmptyComponent={
-                <EmptyState title={t('common.empty')} subtitle={t('home.emptyCoursesHint')} />
-              }
-              showsVerticalScrollIndicator={false}
-              renderItem={({ item }) => (
+        <FlatList
+          key={`${resultTab}-${columns}`}
+          data={isLoading || isError ? [] : listData}
+          keyExtractor={(row) =>
+            row.kind === 'course'
+              ? `course-${row.item.id}`
+              : row.kind === 'tutor'
+                ? `tutor-${row.item.id}`
+                : `institute-${row.item.id}`
+          }
+          numColumns={columns}
+          ListHeaderComponent={listHeader}
+          contentContainerStyle={styles.list}
+          columnWrapperStyle={columns > 1 ? styles.columnWrap : undefined}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          ListEmptyComponent={
+            !isLoading && !isError ? (
+              <EmptyState
+                title={t('common.empty')}
+                subtitle={
+                  resultTab === 'services' ? t('home.emptyCoursesHint') : undefined
+                }
+              />
+            ) : null
+          }
+          showsVerticalScrollIndicator={false}
+          renderItem={({ item: row }) => {
+            if (row.kind === 'course') {
+              return (
                 <View
                   style={{
                     width: `${100 / columns}%` as `${number}%`,
@@ -289,37 +373,21 @@ export default function ExploreScreen() {
                     marginBottom: courseGap,
                   }}
                 >
-                  <CourseCard course={item} variant="featured" />
+                  <CourseCard course={row.item} variant="featured" />
                 </View>
-              )}
-            />
-          </>
-        ) : null}
-
-        {!isLoading && !isError && resultTab === 'providers' ? (
-          <>
-            <SectionHeader title={t('marketplace.serviceProviders')} />
-            <FlatList
-              data={providerRows}
-              keyExtractor={(row) => `${row.kind}-${row.item.id}`}
-              contentContainerStyle={styles.list}
-              refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-              ListEmptyComponent={<EmptyState title={t('common.empty')} />}
-              showsVerticalScrollIndicator={false}
-              renderItem={({ item: row }) =>
-                row.kind === 'tutor' ? (
-                  <View style={styles.listItem}>
-                    <TutorCard tutor={row.item} />
-                  </View>
+              );
+            }
+            return (
+              <View style={styles.listItem}>
+                {row.kind === 'tutor' ? (
+                  <TutorCard tutor={row.item} />
                 ) : (
-                  <View style={styles.listItem}>
-                    <InstituteCard institute={row.item} />
-                  </View>
-                )
-              }
-            />
-          </>
-        ) : null}
+                  <InstituteCard institute={row.item} />
+                )}
+              </View>
+            );
+          }}
+        />
       </View>
     </SafeAreaView>
   );
@@ -329,7 +397,10 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   shell: {
     paddingTop: spacing.md,
+  },
+  headerBlock: {
     gap: spacing.lg,
+    marginBottom: spacing.md,
   },
   title: {
     ...typography.heading,
@@ -398,30 +469,34 @@ const styles = StyleSheet.create({
   },
   segments: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
+    backgroundColor: colors.beige,
+    borderRadius: radius.full,
+    padding: SEGMENT_PAD,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  segmentPill: {
+    position: 'absolute',
+    top: SEGMENT_PAD,
+    bottom: SEGMENT_PAD,
+    left: SEGMENT_PAD,
+    borderRadius: radius.full,
+    backgroundColor: colors.primary,
   },
   segment: {
     flex: 1,
-    minHeight: 40,
-    paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
-    borderRadius: radius.lg,
-    backgroundColor: colors.white,
-    borderWidth: 1.5,
-    borderColor: colors.border,
+    borderRadius: radius.full,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  segmentActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    zIndex: 1,
+    minHeight: 40,
   },
   segmentText: {
     ...typography.caption,
-    color: colors.text,
+    color: colors.textSecondary,
     fontWeight: '700',
-    fontSize: 12,
+    fontSize: 13,
     textAlign: 'center',
   },
   segmentTextActive: {
@@ -430,7 +505,6 @@ const styles = StyleSheet.create({
   list: {
     paddingBottom: spacing.massive,
     flexGrow: 1,
-    gap: spacing.sm,
   },
   columnWrap: {
     marginHorizontal: -spacing.md / 2,
