@@ -8,14 +8,12 @@ import { Platform, StyleSheet, Text, useWindowDimensions, View } from 'react-nat
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const BEIGE = '#F7F3EE';
-/** Intrinsic size of assets/images/bg.png */
-const PHONE_ART_ASPECT = 881 / 1499;
 
 export default function WelcomeScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
-  const { isDesktop, isTablet, contentPadding } = useLayout();
+  const { isDesktop, isTablet, isMobile, contentPadding } = useLayout();
 
   const isLarge = isTablet || isDesktop;
   const panelMaxWidth = isDesktop ? 560 : isTablet ? 520 : undefined;
@@ -24,18 +22,18 @@ export default function WelcomeScreen() {
     ? require('../../assets/images/bg4.png')
     : isTablet
       ? require('../../assets/images/bg3.png')
-      : require('../../assets/images/bg.png');
+      : require('../../assets/images/welcome.png');
 
-  // Full page width; height follows image ratio (capped so it stays behind the CTAs).
+  // Phones: full-bleed under UI. Larger layouts: bottom art panel.
   const artWidth = windowWidth;
-  const naturalArtHeight = isLarge ? windowHeight * 0.72 : artWidth / PHONE_ART_ASPECT;
-  const artHeight = Math.min(naturalArtHeight, windowHeight * 0.68);
+  const artHeight = isMobile ? windowHeight : Math.min(windowHeight * 0.72, windowHeight * 0.68);
 
   return (
     <View style={styles.root}>
       <View
         style={[
           styles.artLayer,
+          isMobile ? styles.artLayerPhone : null,
           {
             width: artWidth,
             height: artHeight,
@@ -46,8 +44,8 @@ export default function WelcomeScreen() {
         <Image
           source={artSource}
           style={styles.art}
-          contentFit={isLarge ? 'contain' : 'cover'}
-          contentPosition="bottom"
+          contentFit={isMobile ? 'cover' : 'contain'}
+          contentPosition={isMobile ? 'center' : 'bottom'}
           accessibilityLabel={t('brand.quote')}
         />
       </View>
@@ -56,6 +54,7 @@ export default function WelcomeScreen() {
         <View
           style={[
             styles.topPanel,
+            isMobile && styles.topPanelPhone,
             isLarge && styles.topPanelLarge,
             {
               maxWidth: panelMaxWidth ?? '100%',
@@ -64,21 +63,23 @@ export default function WelcomeScreen() {
             },
           ]}
         >
-          <View style={[styles.brand, isLarge && styles.brandLarge]}>
-            <Text
-              style={[styles.logoWord, isLarge && styles.logoWordLarge]}
-              accessibilityRole="header"
-            >
-              {t('brand.name').toLowerCase()}
-              <Text style={styles.logoDot}>.</Text>
-            </Text>
-            <Text style={[styles.tagline, isLarge && styles.taglineLarge]}>
-              {t('brand.tagline')}
-            </Text>
-            <Text style={[styles.marketplace, isLarge && styles.marketplaceLarge]}>
-              {t('brand.marketplace')}
-            </Text>
-          </View>
+          {!isMobile ? (
+            <View style={[styles.brand, isLarge && styles.brandLarge]}>
+              <Text
+                style={[styles.logoWord, isLarge && styles.logoWordLarge]}
+                accessibilityRole="header"
+              >
+                {t('brand.name').toLowerCase()}
+                <Text style={styles.logoDot}>.</Text>
+              </Text>
+              <Text style={[styles.tagline, isLarge && styles.taglineLarge]}>
+                {t('brand.tagline')}
+              </Text>
+              <Text style={[styles.marketplace, isLarge && styles.marketplaceLarge]}>
+                {t('brand.marketplace')}
+              </Text>
+            </View>
+          ) : null}
 
           <View style={[styles.actions, isLarge && styles.actionsLarge]}>
             <Button
@@ -124,6 +125,10 @@ const styles = StyleSheet.create({
     bottom: 0,
     zIndex: 0,
   },
+  artLayerPhone: {
+    top: 0,
+    bottom: 0,
+  },
   art: {
     width: '100%',
     height: '100%',
@@ -138,6 +143,12 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     paddingTop: spacing.xl,
     gap: spacing.xl,
+  },
+  topPanelPhone: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    paddingTop: 0,
+    paddingBottom: spacing.lg,
   },
   topPanelLarge: {
     paddingTop: spacing.xxl,
