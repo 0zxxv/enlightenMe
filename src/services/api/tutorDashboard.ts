@@ -45,6 +45,7 @@ export type TutorVerification = {
   verificationStatus: VerificationStatus;
   bio: string | null;
   expertise: string[];
+  paymentQrUrl?: string | null;
   ratingAvg: number;
   ratingCount: number;
   studentCount: number;
@@ -81,6 +82,19 @@ export async function getTutorStudents() {
 
 export async function getTutorVerification() {
   const result = await apiRequest<ApiSuccess<TutorVerification>>('/tutor/dashboard/verification', {
+    auth: true,
+  });
+  return result.data;
+}
+
+export async function updateTutorProfile(body: {
+  bio?: string;
+  expertise?: string[];
+  paymentQrUrl?: string | null;
+}) {
+  const result = await apiRequest<ApiSuccess<Record<string, unknown>>>('/tutor/dashboard/profile', {
+    method: 'PATCH',
+    body,
     auth: true,
   });
   return result.data;

@@ -63,6 +63,7 @@ export type TutorProfile = {
   bio: string;
   expertise: string[];
   providerType?: ProviderType;
+  paymentQrUrl?: string | null;
   verificationStatus: VerificationStatus;
   ratingAvg: number;
   ratingCount: number;

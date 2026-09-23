@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   FlatList,
@@ -71,6 +72,7 @@ function courseMatchesSubject(course: Course | undefined, subjectId: SubjectId):
 
 export default function BookingsScreen() {
   const { t, language, isRTL } = useTranslation();
+  const router = useRouter();
   const [segment, setSegment] = useState<Segment>('upcoming');
   const [query, setQuery] = useState('');
   const [trackWidth, setTrackWidth] = useState(0);
@@ -209,6 +211,14 @@ export default function BookingsScreen() {
           placeholder={t('bookings.searchPlaceholder')}
           style={styles.search}
         />
+        <Pressable
+          style={styles.filterBtn}
+          hitSlop={4}
+          onPress={() => router.push('/schedule/week')}
+          accessibilityLabel={t('schedule.weekTitle')}
+        >
+          <Ionicons name="calendar-outline" size={20} color={colors.primary} />
+        </Pressable>
         <Pressable style={styles.filterBtn} hitSlop={4} onPress={openFilters}>
           <Ionicons name="options-outline" size={20} color={colors.primary} />
         </Pressable>

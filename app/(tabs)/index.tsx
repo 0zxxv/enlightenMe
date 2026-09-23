@@ -82,15 +82,16 @@ export default function HomeScreen() {
   const chevron = isRTL ? 'chevron-back' : 'chevron-forward';
   const rowDir = isRTL ? ('row-reverse' as const) : ('row' as const);
 
-  const upcomingBooking = useMemo(() => {
+  const upcomingBookings = useMemo(() => {
     const now = Date.now();
     return (bookingsQuery.data ?? [])
-      .filter((b) => !PAST_STATUSES.has(b.status) && b.session?.startsAt)
+      .filter((b) => !PAST_STATUSES.has(b.status) && b.session?.startsAt && b.course)
       .filter((b) => new Date(b.session!.startsAt).getTime() >= now - 60 * 60 * 1000)
       .sort(
         (a, b) =>
           new Date(a.session!.startsAt).getTime() - new Date(b.session!.startsAt).getTime(),
-      )[0];
+      )
+      .slice(0, 5);
   }, [bookingsQuery.data]);
 
   const continueBookings = useMemo(() => {
@@ -112,9 +113,8 @@ export default function HomeScreen() {
 
   const courseGap = spacing.md;
   const courseWidthPct = `${100 / Math.min(layout.courseColumns, 2)}%` as `${number}%`;
-
-  const dayBits = formatClassDay(upcomingBooking?.session?.startsAt, language);
   const continueCardWidth = Math.min(layout.width - layout.contentPadding * 2 - 28, 340);
+  const upcomingCardWidth = Math.min(layout.width - layout.contentPadding * 2, 360);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -205,63 +205,83 @@ export default function HomeScreen() {
         <SectionHeader
           title={t('home.upcomingClass')}
           actionLabel={t('common.seeAll')}
-          onAction={() => router.push('/(tabs)/bookings')}
+          onAction={() => router.push('/schedule/week')}
         />
-        {upcomingBooking?.course ? (
-          <View style={styles.upcomingCard}>
-            <View style={styles.upcomingDecorA} pointerEvents="none" />
-            <View style={styles.upcomingDecorB} pointerEvents="none" />
-            <View style={[styles.upcomingInner, { flexDirection: rowDir }]}>
-              <View style={styles.dateBlock}>
-                <Text style={styles.dateWeekday}>{dayBits.weekday}</Text>
-                <Text style={styles.dateDay}>{dayBits.day}</Text>
-                <Text style={styles.dateMonth}>{dayBits.month}</Text>
-              </View>
-              <View style={styles.upcomingBody}>
-                <View style={[styles.upcomingTitleRow, { flexDirection: rowDir }]}>
-                  <View style={styles.upcomingCopy}>
-                    {upcomingBooking.course.courseCode ? (
-                      <Text style={styles.courseCode}>{upcomingBooking.course.courseCode}</Text>
-                    ) : null}
-                    <Text style={styles.upcomingTitle} numberOfLines={2}>
-                      {courseTitle(upcomingBooking.course, language)}
-                    </Text>
-                  </View>
-                  <Pressable hitSlop={8} style={styles.moreBtn}>
-                    <Ionicons name="ellipsis-horizontal" size={18} color={colors.textMuted} />
-                  </Pressable>
-                </View>
-                <View style={[styles.metaRow, { flexDirection: rowDir }]}>
-                  <Ionicons
-                    name={
-                      upcomingBooking.course.format === 'InPerson'
-                        ? 'people-outline'
-                        : 'videocam-outline'
-                    }
-                    size={14}
-                    color={colors.textMuted}
-                  />
-                  <Text style={styles.metaText}>
-                    {formatLabel(upcomingBooking.course.format, t)}
-                  </Text>
-                </View>
-                <View style={[styles.metaRow, { flexDirection: rowDir }]}>
-                  <Ionicons name="time-outline" size={14} color={colors.textMuted} />
-                  <Text style={styles.metaText}>
-                    {formatTime(upcomingBooking.session!.startsAt, language)}
-                    {' – '}
-                    {formatTime(upcomingBooking.session!.endsAt, language)}
-                  </Text>
-                </View>
-                <Pressable
-                  style={styles.joinBtn}
-                  onPress={() => router.push(`/booking/detail/${upcomingBooking.id}`)}
+        {upcomingBookings.length ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            decelerationRate="fast"
+            snapToInterval={upcomingCardWidth + spacing.md}
+            contentContainerStyle={[styles.upcomingRow, { flexDirection: rowDir }]}
+          >
+            {upcomingBookings.map((booking) => {
+              const bits = formatClassDay(booking.session?.startsAt, language);
+              return (
+                <View
+                  key={booking.id}
+                  style={[styles.upcomingCard, { width: upcomingCardWidth }]}
                 >
-                  <Text style={styles.joinBtnText}>{t('home.joinClass')}</Text>
-                </Pressable>
-              </View>
-            </View>
-          </View>
+                  <View style={styles.upcomingDecorA} pointerEvents="none" />
+                  <View style={styles.upcomingDecorB} pointerEvents="none" />
+                  <View style={[styles.upcomingInner, { flexDirection: rowDir }]}>
+                    <View style={styles.dateBlock}>
+                      <Text style={styles.dateWeekday}>{bits.weekday}</Text>
+                      <Text style={styles.dateDay}>{bits.day}</Text>
+                      <Text style={styles.dateMonth}>{bits.month}</Text>
+                    </View>
+                    <View style={styles.upcomingBody}>
+                      <View style={[styles.upcomingTitleRow, { flexDirection: rowDir }]}>
+                        <View style={styles.upcomingCopy}>
+                          {booking.course?.courseCode ? (
+                            <Text style={styles.courseCode}>{booking.course.courseCode}</Text>
+                          ) : null}
+                          <Text style={styles.upcomingTitle} numberOfLines={2}>
+                            {courseTitle(booking.course!, language)}
+                          </Text>
+                        </View>
+                        <Pressable
+                          hitSlop={8}
+                          style={styles.moreBtn}
+                          onPress={() => router.push(`/booking/detail/${booking.id}`)}
+                        >
+                          <Ionicons name="ellipsis-horizontal" size={18} color={colors.textMuted} />
+                        </Pressable>
+                      </View>
+                      <View style={[styles.metaRow, { flexDirection: rowDir }]}>
+                        <Ionicons
+                          name={
+                            booking.course?.format === 'InPerson'
+                              ? 'people-outline'
+                              : 'videocam-outline'
+                          }
+                          size={14}
+                          color={colors.textMuted}
+                        />
+                        <Text style={styles.metaText}>
+                          {formatLabel(booking.course!.format, t)}
+                        </Text>
+                      </View>
+                      <View style={[styles.metaRow, { flexDirection: rowDir }]}>
+                        <Ionicons name="time-outline" size={14} color={colors.textMuted} />
+                        <Text style={styles.metaText}>
+                          {formatTime(booking.session!.startsAt, language)}
+                          {' – '}
+                          {formatTime(booking.session!.endsAt, language)}
+                        </Text>
+                      </View>
+                      <Pressable
+                        style={styles.joinBtn}
+                        onPress={() => router.push(`/booking/detail/${booking.id}`)}
+                      >
+                        <Text style={styles.joinBtnText}>{t('home.joinClass')}</Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                </View>
+              );
+            })}
+          </ScrollView>
         ) : (
           <View style={styles.emptyCard}>
             <Text style={styles.emptyTitle}>{t('home.noUpcomingClass')}</Text>
@@ -307,7 +327,7 @@ export default function HomeScreen() {
                 id: 'calendar',
                 label: t('home.actionCalendar'),
                 icon: 'calendar-outline' as const,
-                onPress: () => router.push('/(tabs)/bookings'),
+                onPress: () => router.push('/schedule/week'),
               },
               {
                 id: 'browse',
@@ -521,6 +541,10 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     position: 'relative',
   },
+  upcomingRow: {
+    gap: spacing.md,
+    paddingRight: spacing.sm,
+  },
   upcomingDecorA: {
     position: 'absolute',
     width: 140,
@@ -544,13 +568,14 @@ const styles = StyleSheet.create({
     alignItems: 'stretch',
   },
   dateBlock: {
-    backgroundColor: colors.white,
+    backgroundColor: '#D9CDEA',
     borderRadius: radius.xl,
-    paddingHorizontal: spacing.md,
+    paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     alignItems: 'center',
     justifyContent: 'center',
-    minWidth: 68,
+    minWidth: 92,
+    width: 92,
     gap: 2,
   },
   dateWeekday: {

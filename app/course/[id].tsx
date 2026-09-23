@@ -32,10 +32,17 @@ import {
   normalizeServiceType,
 } from '@/domain/marketplace';
 import { colors, radius, shadows, spacing, typography } from '@/theme';
-import { courseTitle, fullName } from '@/utils/format';
+import { courseTitle, formatDate, formatTime, fullName } from '@/utils/format';
 import { resolveCourseImageSource } from '@/utils/courseImages';
 
 type DetailTab = 'about' | 'curriculum' | 'reviews';
+
+type AboutFact = {
+  key: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  value: string;
+};
 
 function formatDisplayPrice(amount: number | string, currency: string) {
   const value = typeof amount === 'string' ? Number(amount) : amount;
@@ -63,7 +70,7 @@ export default function CourseDetailsScreen() {
   const insets = useSafeAreaInsets();
   const layout = useLayout();
   const { isAuthenticated } = useAuth();
-  const [tab, setTab] = useState<DetailTab>('curriculum');
+  const [tab, setTab] = useState<DetailTab>('about');
   const [expandedCurriculumId, setExpandedCurriculumId] = useState<string | null>(null);
   const courseQuery = useCourse(id);
   const course = courseQuery.data;
@@ -155,6 +162,194 @@ export default function CourseDetailsScreen() {
       label: withCount(t('course.maxStudents'), course.capacity),
     },
   ];
+
+  const subjectName =
+    language === 'ar' && course.subject?.nameAr
+      ? course.subject.nameAr
+      : course.subject?.nameEn;
+  const categoryName =
+    language === 'ar' && course.category?.nameAr
+      ? course.category.nameAr
+      : course.category?.nameEn;
+  const universityName =
+    language === 'ar' && course.university?.nameAr
+      ? course.university.nameAr
+      : course.university?.nameEn;
+  const collegeName =
+    language === 'ar' && course.college?.nameAr
+      ? course.college.nameAr
+      : course.college?.nameEn;
+  const instituteName =
+    language === 'ar' && course.institute?.nameAr
+      ? course.institute.nameAr
+      : course.institute?.name;
+  const formatName = formatLabel(
+    course.format,
+    t('common.online'),
+    t('common.inPerson'),
+    t('common.hybrid'),
+  );
+  const durationLabel = course.durationMinutes
+    ? t('course.durationMinutes').replace('{{count}}', String(course.durationMinutes))
+    : null;
+
+  const aboutFacts: AboutFact[] = [];
+  const pushFact = (fact: AboutFact) => {
+    if (fact.value?.trim()) aboutFacts.push(fact);
+  };
+  pushFact({
+    key: 'service',
+    icon: 'school-outline',
+    label: t('course.serviceType'),
+    value: t(SERVICE_TYPE_SINGULAR_KEYS[serviceType]),
+  });
+  if (subjectName) {
+    pushFact({
+      key: 'subject',
+      icon: 'book-outline',
+      label: t('explore.subject'),
+      value: subjectName,
+    });
+  }
+  if (categoryName) {
+    pushFact({
+      key: 'category',
+      icon: 'grid-outline',
+      label: t('course.category'),
+      value: categoryName,
+    });
+  }
+  if (course.level) {
+    pushFact({
+      key: 'level',
+      icon: 'trending-up-outline',
+      label: t('course.level'),
+      value: course.level,
+    });
+  }
+  if (course.grade) {
+    pushFact({
+      key: 'grade',
+      icon: 'ribbon-outline',
+      label: t('course.grade'),
+      value: course.grade,
+    });
+  }
+  if (course.courseCode) {
+    pushFact({
+      key: 'code',
+      icon: 'barcode-outline',
+      label: t('course.courseCode'),
+      value: course.courseCode,
+    });
+  }
+  if (course.major) {
+    pushFact({
+      key: 'major',
+      icon: 'library-outline',
+      label: t('course.major'),
+      value: course.major,
+    });
+  }
+  if (universityName) {
+    pushFact({
+      key: 'university',
+      icon: 'business-outline',
+      label: t('course.university'),
+      value: universityName,
+    });
+  }
+  if (collegeName) {
+    pushFact({
+      key: 'college',
+      icon: 'albums-outline',
+      label: t('course.college'),
+      value: collegeName,
+    });
+  }
+  if (course.skillCategory) {
+    pushFact({
+      key: 'skill',
+      icon: 'construct-outline',
+      label: t('course.skillCategory'),
+      value: course.skillCategory,
+    });
+  }
+  if (course.curriculumName) {
+    pushFact({
+      key: 'curriculumName',
+      icon: 'document-text-outline',
+      label: t('course.curriculumName'),
+      value: course.curriculumName,
+    });
+  }
+  pushFact({
+    key: 'format',
+    icon: 'desktop-outline',
+    label: t('explore.format'),
+    value: formatName,
+  });
+  if (course.location) {
+    pushFact({
+      key: 'location',
+      icon: 'location-outline',
+      label: t('course.location'),
+      value: course.location,
+    });
+  }
+  if (durationLabel) {
+    pushFact({
+      key: 'duration',
+      icon: 'time-outline',
+      label: t('course.duration'),
+      value: durationLabel,
+    });
+  }
+  pushFact({
+    key: 'sessions',
+    icon: 'calendar-outline',
+    label: t('course.sessions'),
+    value: withCount(t('course.sessionsCount'), course.sessionCount),
+  });
+  pushFact({
+    key: 'capacity',
+    icon: 'people-outline',
+    label: t('course.capacity'),
+    value: withCount(t('course.maxStudents'), course.capacity),
+  });
+  pushFact({
+    key: 'price',
+    icon: 'pricetag-outline',
+    label: t('course.packagePrice'),
+    value: formatDisplayPrice(course.priceDecimal, course.currency),
+  });
+  if (instituteName) {
+    pushFact({
+      key: 'institute',
+      icon: 'home-outline',
+      label: t('course.institute'),
+      value: instituteName,
+    });
+  }
+  if (providerType) {
+    pushFact({
+      key: 'provider',
+      icon: 'person-outline',
+      label: t('course.provider'),
+      value: t(PROVIDER_TYPE_SINGULAR_KEYS[providerType]),
+    });
+  }
+
+  const now = Date.now();
+  const upcomingSessions = [...(course.sessions ?? [])]
+    .filter((s) => new Date(s.startsAt).getTime() >= now)
+    .sort((a, b) => +new Date(a.startsAt) - +new Date(b.startsAt))
+    .slice(0, 3);
+
+  const learnItems = [...(course.curriculum ?? [])]
+    .sort((a, b) => a.order - b.order)
+    .slice(0, 5)
+    .map((item) => (language === 'ar' && item.titleAr ? item.titleAr : item.title));
 
   return (
     <View style={styles.root}>
@@ -286,7 +481,121 @@ export default function CourseDetailsScreen() {
           </View>
           <View style={styles.tabsRule} />
 
-          {tab === 'about' ? <Text style={styles.paragraph}>{description}</Text> : null}
+          {tab === 'about' ? (
+            <View style={styles.aboutSection}>
+              <View style={styles.aboutBlock}>
+                <Text style={styles.aboutHeading}>{t('course.overview')}</Text>
+                <Text style={styles.paragraph}>{description}</Text>
+              </View>
+
+              {learnItems.length ? (
+                <View style={styles.aboutBlock}>
+                  <Text style={styles.aboutHeading}>{t('course.whatYouLearn')}</Text>
+                  <View style={styles.learnList}>
+                    {learnItems.map((item, index) => (
+                      <View key={`${item}-${index}`} style={styles.learnRow}>
+                        <View style={styles.learnDot}>
+                          <Ionicons name="checkmark" size={12} color={colors.primary} />
+                        </View>
+                        <Text style={styles.learnText}>{item}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              ) : null}
+
+              <View style={styles.aboutBlock}>
+                <Text style={styles.aboutHeading}>{t('course.details')}</Text>
+                <View style={styles.factsCard}>
+                  {aboutFacts.map((fact, index) => (
+                    <View
+                      key={fact.key}
+                      style={[
+                        styles.factRow,
+                        index < aboutFacts.length - 1 && styles.factRowBorder,
+                      ]}
+                    >
+                      <View style={styles.factIcon}>
+                        <Ionicons name={fact.icon} size={16} color={colors.primary} />
+                      </View>
+                      <Text style={styles.factLabel}>{fact.label}</Text>
+                      <Text style={styles.factValue}>{fact.value}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+
+              {course.institute?.description ? (
+                <View style={styles.aboutBlock}>
+                  <Text style={styles.aboutHeading}>{t('course.aboutInstitute')}</Text>
+                  <Pressable
+                    style={styles.providerCard}
+                    onPress={() =>
+                      course.instituteId && router.push(`/institute/${course.instituteId}`)
+                    }
+                  >
+                    <Text style={styles.providerTitle}>{instituteName}</Text>
+                    <Text style={styles.paragraph}>{course.institute.description}</Text>
+                  </Pressable>
+                </View>
+              ) : null}
+
+              {course.tutor?.tutorProfile?.bio ? (
+                <View style={styles.aboutBlock}>
+                  <Text style={styles.aboutHeading}>{t('course.aboutTutor')}</Text>
+                  <Pressable
+                    style={styles.providerCard}
+                    onPress={() => course.tutorId && router.push(`/tutor/${course.tutorId}`)}
+                  >
+                    <View style={styles.providerHeader}>
+                      <Avatar name={tutorName || 'Tutor'} size={40} />
+                      <View style={styles.providerMeta}>
+                        <Text style={styles.providerTitle}>{tutorName}</Text>
+                        {course.tutor.tutorProfile.expertise?.length ? (
+                          <Text style={styles.providerExpertise} numberOfLines={2}>
+                            {course.tutor.tutorProfile.expertise.slice(0, 4).join(' · ')}
+                          </Text>
+                        ) : null}
+                      </View>
+                    </View>
+                    <Text style={styles.paragraph} numberOfLines={5}>
+                      {course.tutor.tutorProfile.bio}
+                    </Text>
+                  </Pressable>
+                </View>
+              ) : null}
+
+              {upcomingSessions.length ? (
+                <View style={styles.aboutBlock}>
+                  <Text style={styles.aboutHeading}>{t('course.upcomingSessions')}</Text>
+                  <View style={styles.sessionList}>
+                    {upcomingSessions.map((session) => (
+                      <View key={session.id} style={styles.sessionCard}>
+                        <View style={styles.sessionIcon}>
+                          <Ionicons name="calendar-outline" size={16} color={colors.primary} />
+                        </View>
+                        <View style={styles.sessionCopy}>
+                          <Text style={styles.sessionDate}>
+                            {formatDate(session.startsAt, language)}
+                          </Text>
+                          <Text style={styles.sessionTime}>
+                            {formatTime(session.startsAt, language)} –{' '}
+                            {formatTime(session.endsAt, language)}
+                          </Text>
+                          <Text style={styles.sessionSeats}>
+                            {t('course.seatsLeft').replace(
+                              '{{count}}',
+                              String(session.seatsAvailable),
+                            )}
+                          </Text>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              ) : null}
+            </View>
+          ) : null}
 
           {tab === 'curriculum' ? (
             course.curriculum?.length ? (
@@ -547,6 +856,141 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.textSecondary,
     lineHeight: 22,
+  },
+  aboutSection: {
+    gap: spacing.xl,
+  },
+  aboutBlock: {
+    gap: spacing.sm,
+  },
+  aboutHeading: {
+    ...typography.subheading,
+    color: colors.primary,
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  learnList: {
+    gap: spacing.sm,
+  },
+  learnRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+  },
+  learnDot: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: colors.lavenderSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 1,
+  },
+  learnText: {
+    ...typography.body,
+    color: colors.text,
+    flex: 1,
+    lineHeight: 22,
+  },
+  factsCard: {
+    backgroundColor: '#F3F1F6',
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+  },
+  factRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+  },
+  factRowBorder: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+  },
+  factIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  factLabel: {
+    ...typography.caption,
+    color: colors.textMuted,
+    fontWeight: '600',
+    width: 96,
+  },
+  factValue: {
+    ...typography.body,
+    color: colors.text,
+    flex: 1,
+    fontWeight: '600',
+    fontSize: 14,
+    textAlign: 'right',
+  },
+  providerCard: {
+    backgroundColor: '#F3F1F6',
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    gap: spacing.sm,
+  },
+  providerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  providerMeta: {
+    flex: 1,
+    gap: 2,
+  },
+  providerTitle: {
+    ...typography.subheading,
+    color: colors.text,
+    fontSize: 15,
+  },
+  providerExpertise: {
+    ...typography.caption,
+    color: colors.textMuted,
+  },
+  sessionList: {
+    gap: spacing.sm,
+  },
+  sessionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    backgroundColor: '#F3F1F6',
+    borderRadius: radius.lg,
+    padding: spacing.md,
+  },
+  sessionIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.lavenderSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sessionCopy: {
+    flex: 1,
+    gap: 2,
+  },
+  sessionDate: {
+    ...typography.body,
+    color: colors.text,
+    fontWeight: '700',
+    fontSize: 14,
+  },
+  sessionTime: {
+    ...typography.caption,
+    color: colors.textSecondary,
+  },
+  sessionSeats: {
+    ...typography.caption,
+    color: colors.primary,
+    fontWeight: '600',
   },
   curriculumList: {
     gap: spacing.sm,

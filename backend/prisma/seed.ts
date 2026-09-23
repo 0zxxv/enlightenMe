@@ -126,6 +126,8 @@ async function main() {
           bio: 'Computer science tutor specializing in algorithms and school mathematics. Former UoB teaching assistant with 7+ years helping Bahrain students master discrete math, data structures, and exam-ready problem solving. Sessions mix whiteboard walkthroughs, past-paper drills, and weekly progress check-ins.',
           expertise: ['Algorithms', 'Mathematics', 'Data Structures', 'Discrete Math', 'Exam Prep'],
           providerType: ProviderType.Teacher,
+          paymentQrUrl:
+            'https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=BenefitPay%3ASara%40Dars',
           verificationStatus: VerificationStatus.Verified,
           ratingAvg: 4.8,
           ratingCount: 28,
@@ -151,6 +153,8 @@ async function main() {
           bio: '3D artist and Blender instructor for beginners and creatives. Portfolio spans product viz, short-film look-dev, and game-ready assets. Classes are project-based: you leave with a rendered scene each week, plus critique notes and downloadable starter files.',
           expertise: ['Blender', '3D Modeling', 'Rendering', 'Lighting', 'Look Development'],
           providerType: ProviderType.Trainer,
+          paymentQrUrl:
+            'https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=BenefitPay%3AZahra%40Dars',
           verificationStatus: VerificationStatus.Verified,
           ratingAvg: 4.9,
           ratingCount: 19,
@@ -176,6 +180,8 @@ async function main() {
           bio: 'Physics and chemistry tutor for Bahrain secondary school students. Explains tough concepts with everyday examples, then locks them in with graded worksheets. Focus areas: mechanics, electricity, organic chemistry, and ministry exam strategy.',
           expertise: ['Physics', 'Chemistry', 'Exam Prep', 'Mechanics', 'Organic Chemistry'],
           providerType: ProviderType.Teacher,
+          paymentQrUrl:
+            'https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=BenefitPay%3AOmar%40Dars',
           verificationStatus: VerificationStatus.Verified,
           ratingAvg: 4.6,
           ratingCount: 33,
@@ -201,6 +207,8 @@ async function main() {
           bio: 'English language coach for school and IELTS preparation. CELTA-certified with a calm, feedback-heavy style. Students practice speaking every session, get annotated writing corrections within 48 hours, and build a personal phrase bank for exams.',
           expertise: ['English', 'IELTS', 'Writing', 'Speaking', 'Academic English'],
           providerType: ProviderType.Teacher,
+          paymentQrUrl:
+            'https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=BenefitPay%3ALayla%40Dars',
           verificationStatus: VerificationStatus.Verified,
           ratingAvg: 4.7,
           ratingCount: 41,
@@ -970,9 +978,40 @@ async function main() {
     userId: student.id,
     courseId: pythonIntro.id,
     sessionId: pythonSessionB.id,
-    status: BookingStatus.Pending,
+    status: BookingStatus.Confirmed,
     price: 70,
-    paymentStatus: PaymentStatus.Pending,
+    paymentStatus: PaymentStatus.Paid,
+    paid: true,
+  });
+
+  await createBooking({
+    userId: student.id,
+    courseId: chemG12.id,
+    sessionId: chemSession.id,
+    status: BookingStatus.Confirmed,
+    price: 42,
+    paymentStatus: PaymentStatus.Paid,
+    paid: true,
+  });
+
+  await createBooking({
+    userId: student.id,
+    courseId: englishG10.id,
+    sessionId: englishSessionB.id,
+    status: BookingStatus.Confirmed,
+    price: 35,
+    paymentStatus: PaymentStatus.Paid,
+    paid: true,
+  });
+
+  await createBooking({
+    userId: student.id,
+    courseId: mathG12.id,
+    sessionId: mathSessionB.id,
+    status: BookingStatus.Confirmed,
+    price: 45,
+    paymentStatus: PaymentStatus.Paid,
+    paid: true,
   });
 
   const mathCompleted2 = await createBooking({
@@ -985,6 +1024,7 @@ async function main() {
     paid: true,
   });
 
+  // student2 keeps a later math slot too
   await createBooking({
     userId: student2.id,
     courseId: mathG12.id,
@@ -1077,9 +1117,10 @@ async function main() {
     userId: student.id,
     courseId: advancedBlender.id,
     sessionId: advBlenderSession.id,
-    status: BookingStatus.Cancelled,
+    status: BookingStatus.Confirmed,
     price: 95,
-    paymentStatus: PaymentStatus.Cancelled,
+    paymentStatus: PaymentStatus.Paid,
+    paid: true,
   });
 
   await createBooking({
@@ -1106,9 +1147,10 @@ async function main() {
     userId: student.id,
     courseId: englishIelts.id,
     sessionId: ieltsSessionB.id,
-    status: BookingStatus.Pending,
+    status: BookingStatus.Confirmed,
     price: 55,
-    paymentStatus: PaymentStatus.Pending,
+    paymentStatus: PaymentStatus.Paid,
+    paid: true,
   });
 
   await prisma.review.createMany({

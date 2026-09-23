@@ -149,6 +149,8 @@ model TutorProfile {
   providerType       ProviderType       @default(Teacher)
   bio                String?
   expertise          String[]           @default([])
+  /// BenefitPay (or other) QR image the tutor uploads for student payments.
+  paymentQrUrl       String?
   verificationStatus VerificationStatus @default(Unverified)
   ratingAvg          Float              @default(0)
   ratingCount        Int                @default(0)

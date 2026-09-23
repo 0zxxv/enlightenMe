@@ -23,10 +23,12 @@ import {
   publishCourse,
   updateCourse,
 } from '@/services/api/courses';
+import { updateTutorProfile } from '@/services/api/tutorDashboard';
 import { colors, radius, shadows, spacing, typography } from '@/theme';
 import { ApiError } from '@/types/api';
 import type { Course, CourseFormat, ServiceType } from '@/types/models';
 import { formatDate, formatTime } from '@/utils/format';
+import { EncodingType, readAsStringAsync } from 'expo-file-system/legacy';
 
 type WizardStep = 1 | 2 | 3 | 4;
 
@@ -329,6 +331,29 @@ export default function CreateCourseScreen() {
 
       await persistSessions(id);
 
+      if (paymentQrUri) {
+        let paymentQrUrl = paymentQrUri;
+        if (
+          !paymentQrUri.startsWith('https://') &&
+          !paymentQrUri.startsWith('data:')
+        ) {
+          try {
+            const base64 = await readAsStringAsync(paymentQrUri, {
+              encoding: EncodingType.Base64,
+            });
+            const mime = paymentQrUri.toLowerCase().includes('.png')
+              ? 'image/png'
+              : 'image/jpeg';
+            paymentQrUrl = `data:${mime};base64,${base64}`;
+          } catch {
+            paymentQrUrl = '';
+          }
+        }
+        if (paymentQrUrl) {
+          await updateTutorProfile({ paymentQrUrl });
+        }
+      }
+
       if (publish) {
         await publishCourse(id);
       }
@@ -596,6 +621,7 @@ export default function CreateCourseScreen() {
             />
 
             <Text style={styles.sectionTitle}>{t('tutorDashboard.paymentQr')}</Text>
+            <Text style={styles.hint}>{t('tutorDashboard.paymentQrHint')}</Text>
             <Button
               title={t('tutorDashboard.uploadPaymentQr')}
               variant="secondary"

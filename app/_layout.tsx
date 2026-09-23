@@ -94,12 +94,13 @@ function RootNavigator() {
           <Stack.Screen name="course/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="tutor/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="institute/[id]" options={{ headerShown: false }} />
-          <Stack.Screen name="booking/[courseId]" options={{ headerShown: true, title: '' }} />
+          <Stack.Screen name="booking/[courseId]" options={{ headerShown: false }} />
           <Stack.Screen name="booking/confirmation" options={{ headerShown: true, title: '' }} />
           <Stack.Screen name="booking/detail/[id]" options={{ headerShown: true, title: '' }} />
           <Stack.Screen name="booking/sessions/[id]" options={{ headerShown: true, title: '' }} />
           <Stack.Screen name="favorites" options={{ headerShown: true, title: '' }} />
           <Stack.Screen name="continue-learning" options={{ headerShown: true, title: '' }} />
+          <Stack.Screen name="schedule/week" options={{ headerShown: true, title: '' }} />
           <Stack.Screen name="subjects" options={{ headerShown: true, title: '' }} />
           <Stack.Screen name="notifications" options={{ headerShown: false }} />
           <Stack.Screen name="conversation/[id]" options={{ headerShown: true, title: '' }} />

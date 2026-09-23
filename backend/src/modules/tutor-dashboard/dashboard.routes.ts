@@ -1,7 +1,9 @@
 import { BookingStatus, PaymentStatus, Role } from '@prisma/client';
 import { Router } from 'express';
+import { z } from 'zod';
 import { prisma } from '../../lib/prisma.js';
 import { requireAuth, requireRoles, type AuthedRequest } from '../../middleware/auth.js';
+import { validate } from '../../middleware/validate.js';
 
 export const tutorDashboardRouter = Router();
 
@@ -231,6 +233,7 @@ tutorDashboardRouter.get('/verification', async (req: AuthedRequest, res, next) 
         verificationStatus: profile?.verificationStatus ?? 'Unverified',
         bio: profile?.bio ?? null,
         expertise: profile?.expertise ?? [],
+        paymentQrUrl: profile?.paymentQrUrl ?? null,
         ratingAvg: profile?.ratingAvg ?? 0,
         ratingCount: profile?.ratingCount ?? 0,
         studentCount: profile?.studentCount ?? 0,
@@ -241,3 +244,30 @@ tutorDashboardRouter.get('/verification', async (req: AuthedRequest, res, next) 
     next(err);
   }
 });
+
+const updateProfileSchema = z.object({
+  bio: z.string().max(4000).optional(),
+  expertise: z.array(z.string()).optional(),
+  paymentQrUrl: z.string().min(1).max(5_000_000).nullable().optional(),
+});
+
+tutorDashboardRouter.patch(
+  '/profile',
+  validate(updateProfileSchema),
+  async (req: AuthedRequest, res, next) => {
+    try {
+      const body = req.body as z.infer<typeof updateProfileSchema>;
+      const data = await prisma.tutorProfile.update({
+        where: { userId: req.user!.sub },
+        data: {
+          ...(body.bio !== undefined ? { bio: body.bio } : {}),
+          ...(body.expertise !== undefined ? { expertise: body.expertise } : {}),
+          ...(body.paymentQrUrl !== undefined ? { paymentQrUrl: body.paymentQrUrl } : {}),
+        },
+      });
+      res.json({ data });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
