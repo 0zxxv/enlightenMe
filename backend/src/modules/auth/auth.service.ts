@@ -88,6 +88,20 @@ export async function register(input: RegisterInput) {
             },
           }
         : {}),
+      ...(input.role === Role.InstituteAdmin
+        ? {
+            instituteMemberships: {
+              create: {
+                role: 'admin',
+                institute: {
+                  create: {
+                    name: input.instituteName!.trim(),
+                  },
+                },
+              },
+            },
+          }
+        : {}),
     },
   });
 

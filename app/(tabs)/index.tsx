@@ -18,6 +18,7 @@ import { ErrorState } from '@/components/ErrorState';
 import { IconButton } from '@/components/IconButton';
 import { LoadingState } from '@/components/LoadingState';
 import { SearchBar } from '@/components/SearchBar';
+import { RtlHorizontalScroll } from '@/components/RtlHorizontalScroll';
 import { SectionHeader } from '@/components/SectionHeader';
 import { SERVICE_CATEGORY_CHIPS } from '@/constants/catalog';
 import { useAuth } from '@/features/auth/useAuth';
@@ -208,12 +209,10 @@ export default function HomeScreen() {
           onAction={() => router.push('/schedule/week')}
         />
         {upcomingBookings.length ? (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
+          <RtlHorizontalScroll
             decelerationRate="fast"
             snapToInterval={upcomingCardWidth + spacing.md}
-            contentContainerStyle={[styles.upcomingRow, { flexDirection: rowDir }]}
+            contentContainerStyle={styles.upcomingRow}
           >
             {upcomingBookings.map((booking) => {
               const bits = formatClassDay(booking.session?.startsAt, language);
@@ -281,7 +280,7 @@ export default function HomeScreen() {
                 </View>
               );
             })}
-          </ScrollView>
+          </RtlHorizontalScroll>
         ) : (
           <View style={styles.emptyCard}>
             <Text style={styles.emptyTitle}>{t('home.noUpcomingClass')}</Text>
@@ -290,11 +289,7 @@ export default function HomeScreen() {
         )}
 
         <SectionHeader title={t('home.quickActions')} />
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={[styles.quickRow, { flexDirection: rowDir }]}
-        >
+        <RtlHorizontalScroll contentContainerStyle={styles.quickRow}>
           {(
             [
               {
@@ -351,7 +346,7 @@ export default function HomeScreen() {
               </Text>
             </Pressable>
           ))}
-        </ScrollView>
+        </RtlHorizontalScroll>
 
         <SectionHeader
           title={t('home.continueLearning')}
@@ -359,10 +354,8 @@ export default function HomeScreen() {
           onAction={() => router.push('/continue-learning')}
         />
         {continueBookings.length ? (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={[styles.continueStrip, { flexDirection: rowDir }]}
+          <RtlHorizontalScroll
+            contentContainerStyle={styles.continueStrip}
             decelerationRate="fast"
             snapToInterval={continueCardWidth + spacing.md}
           >
@@ -408,7 +401,7 @@ export default function HomeScreen() {
                 </Pressable>
               );
             })}
-          </ScrollView>
+          </RtlHorizontalScroll>
         ) : (
           <View style={styles.emptyCard}>
             <Text style={styles.emptyHint}>{t('home.emptyCoursesHint')}</Text>

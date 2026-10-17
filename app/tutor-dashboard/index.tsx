@@ -17,6 +17,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { ErrorState } from '@/components/ErrorState';
 import { IconButton } from '@/components/IconButton';
 import { LoadingState } from '@/components/LoadingState';
+import { RtlHorizontalScroll } from '@/components/RtlHorizontalScroll';
 import { SectionHeader } from '@/components/SectionHeader';
 import { useAuth } from '@/features/auth/useAuth';
 import { useLayout } from '@/hooks/useLayout';
@@ -96,8 +97,9 @@ export default function TutorDashboardHome() {
 
   const currency = earningsQuery.data?.currency ?? 'BHD';
   const upcoming = (upcomingQuery.data ?? []).slice(0, 5);
-  const courses = (coursesQuery.data ?? []).slice(0, 4);
+  const courses = (coursesQuery.data ?? []).filter((c) => c.status !== 'Archived').slice(0, 4);
   const firstName = user?.firstName ?? t('brand.name');
+  const wide = layout.isTablet || layout.isDesktop;
 
   const pendingCourseCount = useMemo(() => {
     const ids = new Set<string>();
@@ -202,7 +204,7 @@ export default function TutorDashboardHome() {
             </View>
 
             <Pressable
-              style={styles.promoWrap}
+              style={[styles.promoWrap, wide && styles.promoWrapWide]}
               onPress={() => router.push('/tutor-dashboard/create')}
             >
               <Image
@@ -212,7 +214,9 @@ export default function TutorDashboardHome() {
               />
               <View style={styles.promo}>
                 <View style={styles.promoCopy}>
-                  <Text style={styles.promoTitle}>{t('tutorDashboard.promoTitle')}</Text>
+                  <Text style={[styles.promoTitle, wide && styles.promoTitleWide]}>
+                    {t('tutorDashboard.promoTitle')}
+                  </Text>
                   <Text style={styles.promoSubtitle}>{t('tutorDashboard.promoSubtitle')}</Text>
                 </View>
                 <View style={styles.promoArrow}>
@@ -221,85 +225,110 @@ export default function TutorDashboardHome() {
               </View>
             </Pressable>
 
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.statsRow}
-            >
-              <View style={styles.statCard}>
-                <View style={[styles.statIcon, { backgroundColor: colors.lavenderSoft }]}>
-                  <Ionicons name="wallet-outline" size={20} color={colors.primary} />
+            <RtlHorizontalScroll contentContainerStyle={styles.statsRow}>
+              {(
+                [
+                  {
+                    key: 'paid',
+                    icon: 'wallet-outline' as const,
+                    soft: colors.lavenderSoft,
+                    tint: colors.primary,
+                    label: t('tutorDashboard.paidTotal'),
+                    value: formatPrice(earningsQuery.data?.paidTotal ?? 0, currency),
+                    hint: `↑ ${t('tutorDashboard.thisMonth')}`,
+                    hintStyle: styles.statHintPositive,
+                  },
+                  {
+                    key: 'pendingPay',
+                    icon: 'time-outline' as const,
+                    soft: '#F3E6D8',
+                    tint: '#C47A3A',
+                    label: t('tutorDashboard.pendingPayment'),
+                    value: formatPrice(earningsQuery.data?.pendingPaymentAmount ?? 0, currency),
+                    hint: `● ${
+                      pendingCourseCount > 0
+                        ? t('tutorDashboard.coursesPending').replace(
+                            '{{count}}',
+                            String(pendingCourseCount),
+                          )
+                        : t('tutorDashboard.noPendingCourses')
+                    }`,
+                    hintStyle: styles.statHintWarn,
+                  },
+                  {
+                    key: 'pendingOut',
+                    icon: 'card-outline' as const,
+                    soft: colors.lavenderSoft,
+                    tint: colors.primary,
+                    label: t('tutorDashboard.pendingPayout'),
+                    value: formatPrice(earningsQuery.data?.pendingPayoutAmount ?? 0, currency),
+                    hint: `● ${
+                      (earningsQuery.data?.pendingPayoutAmount ?? 0) > 0
+                        ? t('tutorDashboard.payoutWaiting')
+                        : t('tutorDashboard.noPendingPayouts')
+                    }`,
+                    hintStyle: styles.statHintMuted,
+                  },
+                ] as const
+              ).map((card) => (
+                <View key={card.key} style={styles.statCard}>
+                  <View
+                    style={[
+                      styles.statIcon,
+                      { backgroundColor: card.soft, alignSelf: isRTL ? 'flex-end' : 'flex-start' },
+                    ]}
+                  >
+                    <Ionicons name={card.icon} size={20} color={card.tint} />
+                  </View>
+                  <Text
+                    style={[
+                      styles.statLabel,
+                      { textAlign: isRTL ? 'right' : 'left', writingDirection: isRTL ? 'rtl' : 'ltr' },
+                    ]}
+                  >
+                    {card.label}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.statValue,
+                      { textAlign: isRTL ? 'right' : 'left', writingDirection: isRTL ? 'rtl' : 'ltr' },
+                    ]}
+                  >
+                    {card.value}
+                  </Text>
+                  <Text
+                    style={[
+                      card.hintStyle,
+                      { textAlign: isRTL ? 'right' : 'left', writingDirection: isRTL ? 'rtl' : 'ltr' },
+                    ]}
+                  >
+                    {card.hint}
+                  </Text>
                 </View>
-                <Text style={styles.statLabel}>{t('tutorDashboard.paidTotal')}</Text>
-                <Text style={styles.statValue}>
-                  {formatPrice(earningsQuery.data?.paidTotal ?? 0, currency)}
-                </Text>
-                <Text style={styles.statHintPositive}>
-                  ↑ {t('tutorDashboard.thisMonth')}
-                </Text>
-              </View>
-
-              <View style={styles.statCard}>
-                <View style={[styles.statIcon, { backgroundColor: '#F3E6D8' }]}>
-                  <Ionicons name="time-outline" size={20} color="#C47A3A" />
-                </View>
-                <Text style={styles.statLabel}>{t('tutorDashboard.pendingPayment')}</Text>
-                <Text style={styles.statValue}>
-                  {formatPrice(earningsQuery.data?.pendingPaymentAmount ?? 0, currency)}
-                </Text>
-                <Text style={styles.statHintWarn}>
-                  ●{' '}
-                  {pendingCourseCount > 0
-                    ? t('tutorDashboard.coursesPending').replace(
-                        '{{count}}',
-                        String(pendingCourseCount),
-                      )
-                    : t('tutorDashboard.noPendingCourses')}
-                </Text>
-              </View>
-
-              <View style={styles.statCard}>
-                <View style={[styles.statIcon, { backgroundColor: colors.lavenderSoft }]}>
-                  <Ionicons name="card-outline" size={20} color={colors.primary} />
-                </View>
-                <Text style={styles.statLabel}>{t('tutorDashboard.pendingPayout')}</Text>
-                <Text style={styles.statValue}>
-                  {formatPrice(earningsQuery.data?.pendingPayoutAmount ?? 0, currency)}
-                </Text>
-                <Text style={styles.statHintMuted}>
-                  ●{' '}
-                  {(earningsQuery.data?.pendingPayoutAmount ?? 0) > 0
-                    ? t('tutorDashboard.payoutWaiting')
-                    : t('tutorDashboard.noPendingPayouts')}
-                </Text>
-              </View>
-            </ScrollView>
+              ))}
+            </RtlHorizontalScroll>
 
             <SectionHeader
               title={t('tutorDashboard.quickActions')}
               actionLabel={t('common.seeAll')}
               onAction={() => router.push('/tutor-dashboard/courses')}
             />
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.actionsRow}
-            >
+            <View style={[styles.actionsRow, wide && styles.actionsRowWide]}>
               {quickActions.map((action) => (
                 <Pressable
                   key={action.id}
-                  style={styles.actionTile}
+                  style={[styles.actionTile, wide && styles.actionTileWide]}
                   onPress={() => router.push(action.href)}
                 >
-                  <View style={[styles.actionIcon, { backgroundColor: action.soft }]}>
-                    <Ionicons name={action.icon} size={22} color={colors.primary} />
+                  <View style={[styles.actionIcon, wide && styles.actionIconWide, { backgroundColor: action.soft }]}>
+                    <Ionicons name={action.icon} size={wide ? 24 : 22} color={colors.primary} />
                   </View>
-                  <Text style={styles.actionLabel} numberOfLines={2}>
+                  <Text style={[styles.actionLabel, wide && styles.actionLabelWide]} numberOfLines={2}>
                     {action.label}
                   </Text>
                 </Pressable>
               ))}
-            </ScrollView>
+            </View>
 
             <SectionHeader
               title={t('tutorDashboard.bookings')}
@@ -472,6 +501,10 @@ const styles = StyleSheet.create({
     aspectRatio: 2.35,
     ...shadows.sm,
   },
+  promoWrapWide: {
+    aspectRatio: 3.2,
+    maxHeight: 220,
+  },
   promoBg: {
     ...StyleSheet.absoluteFill,
     width: '100%',
@@ -493,6 +526,10 @@ const styles = StyleSheet.create({
     color: colors.primary,
     fontSize: 20,
     lineHeight: 26,
+  },
+  promoTitleWide: {
+    fontSize: 28,
+    lineHeight: 34,
   },
   promoSubtitle: {
     ...typography.body,
@@ -558,17 +595,33 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   actionsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: spacing.sm,
   },
+  actionsRowWide: {
+    gap: spacing.md,
+  },
   actionTile: {
-    width: 88,
+    width: 100,
+    minHeight: 104,
     backgroundColor: colors.white,
     borderRadius: radius.xl,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.sm,
     alignItems: 'center',
+    justifyContent: 'center',
     gap: spacing.sm,
     ...shadows.sm,
+  },
+  actionTileWide: {
+    flexGrow: 1,
+    flexBasis: 140,
+    minWidth: 120,
+    maxWidth: 180,
+    minHeight: 120,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.md,
   },
   actionIcon: {
     width: 44,
@@ -577,13 +630,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  actionIconWide: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+  },
   actionLabel: {
     ...typography.caption,
     color: colors.text,
     fontWeight: '600',
     textAlign: 'center',
-    fontSize: 11,
-    lineHeight: 14,
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  actionLabelWide: {
+    fontSize: 13,
+    lineHeight: 18,
   },
   list: { gap: spacing.md },
   sessionCard: {

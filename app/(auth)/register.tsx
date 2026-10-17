@@ -36,24 +36,70 @@ type FieldProps = TextInputProps & {
   icon: keyof typeof Ionicons.glyphMap;
   error?: string;
   trailing?: React.ReactNode;
+  isRTL?: boolean;
 };
 
-function IconField({ label, icon, error, trailing, style, ...rest }: FieldProps) {
+function IconField({ label, icon, error, trailing, style, isRTL, ...rest }: FieldProps) {
+  const iconEl = (
+    <View style={styles.iconTile}>
+      <Ionicons name={icon} size={18} color={colors.primaryMuted} />
+    </View>
+  );
+  const inputEl = (
+    <RNTextInput
+      placeholderTextColor={colors.textMuted}
+      style={[
+        styles.fieldInput,
+        {
+          textAlign: isRTL ? 'right' : 'left',
+          writingDirection: isRTL ? 'rtl' : 'ltr',
+        },
+        style,
+      ]}
+      {...rest}
+    />
+  );
+
   return (
     <View style={styles.field}>
-      <Text style={styles.fieldLabel}>{label}</Text>
-      <View style={[styles.fieldBox, error ? styles.fieldBoxError : null]}>
-        <View style={styles.iconTile}>
-          <Ionicons name={icon} size={18} color={colors.primaryMuted} />
-        </View>
-        <RNTextInput
-          placeholderTextColor={colors.textMuted}
-          style={[styles.fieldInput, style]}
-          {...rest}
-        />
-        {trailing}
+      <Text
+        style={[
+          styles.fieldLabel,
+          { textAlign: isRTL ? 'right' : 'left', writingDirection: isRTL ? 'rtl' : 'ltr' },
+        ]}
+      >
+        {label}
+      </Text>
+      {/* Force physical LTR flex so child order alone controls icon side (web dir=rtl would undo row-reverse). */}
+      <View
+        // @ts-expect-error RN Web supports `dir`
+        dir="ltr"
+        style={[styles.fieldBox, { flexDirection: 'row' }, error ? styles.fieldBoxError : null]}
+      >
+        {isRTL ? (
+          <>
+            {trailing}
+            {inputEl}
+            {iconEl}
+          </>
+        ) : (
+          <>
+            {iconEl}
+            {inputEl}
+            {trailing}
+          </>
+        )}
       </View>
-      {error ? <Text style={styles.fieldError}>{error}</Text> : null}
+      {error ? (
+        <Text
+          style={[
+            styles.fieldError,
+            { textAlign: isRTL ? 'right' : 'left', writingDirection: isRTL ? 'rtl' : 'ltr' },
+          ]}
+        >
+          {error}
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -61,12 +107,21 @@ function IconField({ label, icon, error, trailing, style, ...rest }: FieldProps)
 const ROLES: {
   value: Role;
   icon: keyof typeof Ionicons.glyphMap;
-  labelKey: 'auth.student' | 'auth.tutor' | 'auth.parent';
+  labelKey: 'auth.student' | 'auth.tutor' | 'auth.parent' | 'auth.institute';
 }[] = [
   { value: 'Student', icon: 'school-outline', labelKey: 'auth.student' },
   { value: 'Tutor', icon: 'easel-outline', labelKey: 'auth.tutor' },
   { value: 'Parent', icon: 'people-outline', labelKey: 'auth.parent' },
+  { value: 'InstituteAdmin', icon: 'business-outline', labelKey: 'auth.institute' },
 ];
+
+const STUDENT_LEARNER_TYPES: LearnerType[] = ['SchoolStudent', 'UniversityStudent'];
+
+function homeForRole(role: Role) {
+  if (role === 'Tutor') return '/tutor-dashboard';
+  if (role === 'InstituteAdmin') return '/institute-dashboard';
+  return '/(tabs)';
+}
 
 export default function RegisterScreen() {
   const { t, language, isRTL } = useTranslation();
@@ -74,6 +129,7 @@ export default function RegisterScreen() {
   const router = useRouter();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [instituteName, setInstituteName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
@@ -90,7 +146,11 @@ export default function RegisterScreen() {
     const next: Record<string, string> = {};
     if (!firstName.trim()) next.firstName = t('auth.nameRequired');
     if (!lastName.trim()) next.lastName = t('auth.nameRequired');
+    if (role === 'InstituteAdmin' && !instituteName.trim()) {
+      next.instituteName = t('auth.instituteNameRequired');
+    }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) next.email = t('auth.invalidEmail');
+    if (!phone.trim()) next.phone = t('auth.phoneRequired');
     if (password.length < 8) next.password = t('auth.passwordMin');
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -104,14 +164,15 @@ export default function RegisterScreen() {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         email: email.trim(),
-        phone: phone.trim() || undefined,
+        phone: phone.trim(),
         password,
         role,
         language,
         ...(role === 'Student' ? { learnerType } : {}),
         ...(role === 'Tutor' ? { providerType } : {}),
+        ...(role === 'InstituteAdmin' ? { instituteName: instituteName.trim() } : {}),
       });
-      router.replace(user.role === 'Tutor' ? '/tutor-dashboard' : '/(tabs)');
+      router.replace(homeForRole(user.role));
     } catch (err) {
       const message = err instanceof ApiError ? err.message : t('common.error');
       setErrors({ form: message });
@@ -119,6 +180,8 @@ export default function RegisterScreen() {
       setLoading(false);
     }
   };
+
+  const titleFont = language === 'ar' ? undefined : SERIF;
 
   return (
     <AuthArtShell>
@@ -140,20 +203,41 @@ export default function RegisterScreen() {
                 {en.brand.name.toLowerCase()}
                 <Text style={styles.logoDot}>.</Text>
               </Text>
-              <Text style={styles.tagline}>{en.brand.tagline}</Text>
-              <Text style={styles.marketplace}>{en.brand.marketplace}</Text>
-              <View style={styles.accentBar} />
             </View>
 
-            <Text style={styles.title} accessibilityRole="header">
+            <Text
+              style={[
+                styles.title,
+                titleFont ? { fontFamily: titleFont } : null,
+                { textAlign: isRTL ? 'right' : 'left', writingDirection: isRTL ? 'rtl' : 'ltr' },
+              ]}
+              accessibilityRole="header"
+            >
               <Text style={styles.titlePrimary}>{t('auth.registerTitleCreate')}</Text>
               <Text style={styles.titleAccent}> {t('auth.registerTitleAccount')}</Text>
             </Text>
-            <Text style={styles.subtitle}>{t('auth.registerSubtitle')}</Text>
+            <Text
+              style={[
+                styles.subtitle,
+                { textAlign: isRTL ? 'right' : 'left', writingDirection: isRTL ? 'rtl' : 'ltr' },
+              ]}
+            >
+              {t('auth.registerSubtitle')}
+            </Text>
 
             <View style={styles.form}>
               <View style={styles.roleBlock}>
-                <Text style={styles.fieldLabel}>{t('auth.role')}</Text>
+                <Text
+                  style={[
+                    styles.fieldLabel,
+                    {
+                      textAlign: isRTL ? 'right' : 'left',
+                      writingDirection: isRTL ? 'rtl' : 'ltr',
+                    },
+                  ]}
+                >
+                  {t('auth.role')}
+                </Text>
                 <View style={styles.roles}>
                   {ROLES.map((item) => {
                     const selected = role === item.value;
@@ -181,15 +265,19 @@ export default function RegisterScreen() {
 
               {role === 'Student' ? (
                 <View style={styles.roleBlock}>
-                  <Text style={styles.fieldLabel}>{t('marketplace.learnerType')}</Text>
+                  <Text
+                    style={[
+                      styles.fieldLabel,
+                      {
+                        textAlign: isRTL ? 'right' : 'left',
+                        writingDirection: isRTL ? 'rtl' : 'ltr',
+                      },
+                    ]}
+                  >
+                    {t('marketplace.learnerType')}
+                  </Text>
                   <View style={styles.roles}>
-                    {(
-                      [
-                        'SchoolStudent',
-                        'UniversityStudent',
-                        'Individual',
-                      ] as LearnerType[]
-                    ).map((value) => {
+                    {STUDENT_LEARNER_TYPES.map((value) => {
                       const selected = learnerType === value;
                       return (
                         <Pressable
@@ -215,7 +303,17 @@ export default function RegisterScreen() {
 
               {role === 'Tutor' ? (
                 <View style={styles.roleBlock}>
-                  <Text style={styles.fieldLabel}>{t('marketplace.providerType')}</Text>
+                  <Text
+                    style={[
+                      styles.fieldLabel,
+                      {
+                        textAlign: isRTL ? 'right' : 'left',
+                        writingDirection: isRTL ? 'rtl' : 'ltr',
+                      },
+                    ]}
+                  >
+                    {t('marketplace.providerType')}
+                  </Text>
                   <View style={styles.roles}>
                     {(['Teacher', 'Trainer'] as const).map((value) => {
                       const selected = providerType === value;
@@ -235,6 +333,18 @@ export default function RegisterScreen() {
                 </View>
               ) : null}
 
+              {role === 'InstituteAdmin' ? (
+                <IconField
+                  label={t('auth.instituteName')}
+                  icon="business-outline"
+                  placeholder={t('auth.instituteName')}
+                  value={instituteName}
+                  onChangeText={setInstituteName}
+                  error={errors.instituteName}
+                  isRTL={isRTL}
+                />
+              ) : null}
+
               <IconField
                 label={t('auth.firstName')}
                 icon="person-outline"
@@ -243,6 +353,7 @@ export default function RegisterScreen() {
                 onChangeText={setFirstName}
                 error={errors.firstName}
                 autoComplete="given-name"
+                isRTL={isRTL}
               />
               <IconField
                 label={t('auth.lastName')}
@@ -252,6 +363,7 @@ export default function RegisterScreen() {
                 onChangeText={setLastName}
                 error={errors.lastName}
                 autoComplete="family-name"
+                isRTL={isRTL}
               />
               <IconField
                 label={t('auth.email')}
@@ -263,6 +375,7 @@ export default function RegisterScreen() {
                 value={email}
                 onChangeText={setEmail}
                 error={errors.email}
+                isRTL={isRTL}
               />
               <IconField
                 label={t('auth.phone')}
@@ -272,6 +385,8 @@ export default function RegisterScreen() {
                 autoComplete="tel"
                 value={phone}
                 onChangeText={setPhone}
+                error={errors.phone}
+                isRTL={isRTL}
               />
               <IconField
                 label={t('auth.password')}
@@ -282,6 +397,7 @@ export default function RegisterScreen() {
                 value={password}
                 onChangeText={setPassword}
                 error={errors.password}
+                isRTL={isRTL}
                 trailing={
                   <Pressable
                     onPress={() => setShowPassword((v) => !v)}
@@ -306,6 +422,8 @@ export default function RegisterScreen() {
                 disabled={loading}
                 style={({ pressed }) => [
                   styles.submit,
+                  yogaDirection(false),
+                  { flexDirection: isRTL ? 'row-reverse' : 'row' },
                   pressed && !loading && styles.submitPressed,
                   loading && styles.submitDisabled,
                 ]}
@@ -349,14 +467,12 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: spacing.xxl,
-    paddingTop: spacing.lg,
+    paddingTop: spacing.md,
     paddingBottom: spacing.massive,
-    gap: spacing.md,
+    gap: spacing.sm,
   },
   header: {
-    gap: 2,
-    marginBottom: spacing.sm,
-    maxWidth: '55%',
+    marginBottom: spacing.xs,
     alignSelf: 'flex-start',
   },
   /** Under RTL parent, flex-end is the physical left (same slot as English). */
@@ -365,8 +481,8 @@ const styles = StyleSheet.create({
   },
   logoWord: {
     fontFamily: SERIF,
-    fontSize: 36,
-    lineHeight: 42,
+    fontSize: 32,
+    lineHeight: 38,
     fontWeight: '700',
     color: colors.primary,
     letterSpacing: -0.4,
@@ -377,35 +493,12 @@ const styles = StyleSheet.create({
     color: colors.lavender,
     fontWeight: '700',
   },
-  tagline: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    fontSize: 13,
-    fontWeight: '600',
-    textAlign: 'left',
-    writingDirection: 'ltr',
-  },
-  marketplace: {
-    ...typography.caption,
-    color: colors.textMuted,
-    fontSize: 12,
-    textAlign: 'left',
-    writingDirection: 'ltr',
-  },
-  accentBar: {
-    width: 36,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.lavender,
-    marginTop: spacing.sm,
-    alignSelf: 'flex-start',
-  },
   title: {
-    fontFamily: SERIF,
-    fontSize: 34,
-    lineHeight: 40,
+    fontSize: 30,
+    lineHeight: 38,
     fontWeight: '700',
     marginTop: spacing.sm,
+    color: colors.primary,
   },
   titlePrimary: {
     color: colors.primary,
@@ -418,8 +511,8 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     fontSize: 15,
     lineHeight: 22,
-    marginBottom: spacing.sm,
-    maxWidth: 320,
+    fontWeight: '400',
+    marginBottom: spacing.md,
   },
   form: {
     gap: spacing.md,
@@ -434,7 +527,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   fieldBox: {
-    flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.white,
     borderRadius: radius.xl,
@@ -481,10 +573,12 @@ const styles = StyleSheet.create({
   },
   roles: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: spacing.sm,
   },
   roleCard: {
-    flex: 1,
+    width: '48%',
+    flexGrow: 1,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
@@ -494,7 +588,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderWidth: 1.5,
     borderColor: colors.border,
-    minHeight: 84,
+    minHeight: 76,
   },
   learnerCard: {
     flex: 1,
@@ -540,7 +634,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     minHeight: 56,
     paddingHorizontal: spacing.lg,
-    flexDirection: 'row',
     alignItems: 'center',
   },
   submitSide: {

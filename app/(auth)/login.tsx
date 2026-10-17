@@ -43,6 +43,10 @@ export default function LoginScreen() {
       router.replace('/tutor-dashboard');
       return;
     }
+    if (user?.role === 'InstituteAdmin') {
+      router.replace('/institute-dashboard');
+      return;
+    }
     router.replace('/(tabs)');
   };
 
@@ -60,7 +64,13 @@ export default function LoginScreen() {
     setErrors({});
     try {
       const signedIn = await login({ email: email.trim(), password });
-      router.replace(signedIn.role === 'Tutor' ? '/tutor-dashboard' : '/(tabs)');
+      if (signedIn.role === 'Tutor') {
+        router.replace('/tutor-dashboard');
+      } else if (signedIn.role === 'InstituteAdmin') {
+        router.replace('/institute-dashboard');
+      } else {
+        router.replace('/(tabs)');
+      }
     } catch (err) {
       const message = err instanceof ApiError ? err.message : t('common.error');
       setErrors({ form: message });

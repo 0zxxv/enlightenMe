@@ -98,6 +98,15 @@ export async function archiveCourse(id: string) {
   return result.data;
 }
 
+/** Soft-deleted courses can be brought back as Draft before republishing. */
+export async function restoreCourse(id: string) {
+  const result = await apiRequest<ApiSuccess<Course>>(`/courses/${id}/restore`, {
+    method: 'POST',
+    auth: true,
+  });
+  return result.data;
+}
+
 export async function listCourseSessions(courseId: string) {
   const result = await apiRequest<ApiSuccess<CourseSession[]>>(`/courses/${courseId}/sessions`);
   return result.data;

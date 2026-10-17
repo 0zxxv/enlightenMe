@@ -19,11 +19,12 @@ export type RegisterInput = {
   password: string;
   firstName: string;
   lastName: string;
-  phone?: string;
+  phone: string;
   role: Role;
   language?: LanguageCode;
   learnerType?: LearnerType;
   providerType?: Extract<ProviderType, 'Teacher' | 'Trainer'>;
+  instituteName?: string;
 };
 
 export async function login(input: LoginInput) {

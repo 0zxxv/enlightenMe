@@ -67,6 +67,9 @@ function AuthGate({ children }: { children: React.ReactNode }) {
     if (user?.role === 'Tutor') {
       return <Redirect href="/tutor-dashboard" />;
     }
+    if (user?.role === 'InstituteAdmin') {
+      return <Redirect href="/institute-dashboard" />;
+    }
     return <Redirect href="/(tabs)" />;
   }
 

@@ -1,7 +1,7 @@
 import { Stack, useRouter } from 'expo-router';
 import React, { useMemo, useState } from 'react';
-import { FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
-import { useQuery } from '@tanstack/react-query';
+import { Alert, FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Badge } from '@/components/Badge';
 import { Button } from '@/components/Button';
 import { Chip } from '@/components/Chip';
@@ -11,32 +11,55 @@ import { LoadingState } from '@/components/LoadingState';
 import { PriceDisplay } from '@/components/PriceDisplay';
 import { useRefresh } from '@/hooks/useRefresh';
 import { useTranslation } from '@/i18n';
+import { archiveCourse, publishCourse, restoreCourse } from '@/services/api/courses';
 import { getTutorCourses, type TutorCourseRow } from '@/services/api/tutorDashboard';
 import { colors, radius, shadows, spacing, typography } from '@/theme';
+import { ApiError } from '@/types/api';
 import type { CourseStatus } from '@/types/models';
 import { formatDate, formatTime } from '@/utils/format';
 
-type StatusFilter = 'All' | 'Draft' | 'Published' | 'Paused';
+type StatusFilter = 'All' | 'Draft' | 'Published' | 'Paused' | 'Archived';
 
 function statusTone(status: CourseStatus): 'primary' | 'success' | 'warning' | 'neutral' {
   if (status === 'Published') return 'success';
   if (status === 'Paused') return 'warning';
   if (status === 'Draft') return 'neutral';
+  if (status === 'Archived') return 'warning';
   return 'primary';
 }
 
 export default function TutorCoursesScreen() {
-  const { t, language } = useTranslation();
+  const { t, language, isRTL } = useTranslation();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [filter, setFilter] = useState<StatusFilter>('All');
+  const [busyId, setBusyId] = useState<string | null>(null);
+
   const query = useQuery({ queryKey: ['tutor', 'courses'], queryFn: getTutorCourses });
   const { refreshing, onRefresh } = useRefresh(async () => {
     await query.refetch();
   });
 
+  const invalidate = async () => {
+    await queryClient.invalidateQueries({ queryKey: ['tutor', 'courses'] });
+  };
+
+  const archiveMutation = useMutation({
+    mutationFn: archiveCourse,
+    onSuccess: invalidate,
+  });
+  const restoreMutation = useMutation({
+    mutationFn: restoreCourse,
+    onSuccess: invalidate,
+  });
+  const republishMutation = useMutation({
+    mutationFn: publishCourse,
+    onSuccess: invalidate,
+  });
+
   const filtered = useMemo(() => {
     const rows = query.data ?? [];
-    if (filter === 'All') return rows;
+    if (filter === 'All') return rows.filter((c) => c.status !== 'Archived');
     return rows.filter((c) => c.status === filter);
   }, [query.data, filter]);
 
@@ -45,22 +68,58 @@ export default function TutorCoursesScreen() {
     { key: 'Draft', label: t('tutorDashboard.filterDraft') },
     { key: 'Published', label: t('tutorDashboard.filterPublished') },
     { key: 'Paused', label: t('tutorDashboard.filterPaused') },
+    { key: 'Archived', label: t('tutorDashboard.filterArchived') },
   ];
+
+  const runAction = async (id: string, action: () => Promise<unknown>, failKey: string) => {
+    setBusyId(id);
+    try {
+      await action();
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : t(failKey);
+      Alert.alert(t('common.error'), message);
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const onDelete = (item: TutorCourseRow) => {
+    Alert.alert(t('tutorDashboard.deleteCourse'), t('tutorDashboard.deleteCourseConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('tutorDashboard.deleteCourse'),
+        style: 'destructive',
+        onPress: () =>
+          runAction(item.id, () => archiveMutation.mutateAsync(item.id), 'tutorDashboard.deleteFailed'),
+      },
+    ]);
+  };
 
   const renderItem = ({ item }: { item: TutorCourseRow }) => {
     const next = item.sessions?.[0];
     const bookingCount = item._count?.bookings ?? 0;
+    const archived = item.status === 'Archived';
+    const busy = busyId === item.id;
 
     return (
       <View style={styles.card}>
-        <View style={styles.cardTop}>
-          <Text style={styles.title} numberOfLines={2}>
+        <View style={[styles.cardTop, isRTL && styles.cardTopRtl]}>
+          <Text
+            style={[
+              styles.title,
+              { textAlign: isRTL ? 'right' : 'left', writingDirection: isRTL ? 'rtl' : 'ltr' },
+            ]}
+            numberOfLines={2}
+          >
             {item.title}
           </Text>
-          <Badge label={item.status} tone={statusTone(item.status)} />
+          <Badge
+            label={archived ? t('tutorDashboard.filterArchived') : item.status}
+            tone={statusTone(item.status)}
+          />
         </View>
-        <Text style={styles.meta}>{item.format}</Text>
-        <View style={styles.priceRow}>
+        <Text style={[styles.meta, { textAlign: isRTL ? 'right' : 'left' }]}>{item.format}</Text>
+        <View style={[styles.priceRow, isRTL && styles.priceRowRtl]}>
           <Text style={styles.meta}>
             {bookingCount} {t('tutorDashboard.bookingsCount')}
           </Text>
@@ -71,22 +130,66 @@ export default function TutorCoursesScreen() {
             compact
           />
         </View>
-        <Text style={styles.nextSession}>
+        <Text style={[styles.nextSession, { textAlign: isRTL ? 'right' : 'left' }]}>
           {next
             ? `${t('tutorDashboard.nextSession')}: ${formatDate(next.startsAt, language)} · ${formatTime(next.startsAt, language)}`
             : t('tutorDashboard.noNextSession')}
         </Text>
-        <Button
-          title={t('tutorDashboard.manage')}
-          variant="secondary"
-          size="sm"
-          onPress={() =>
-            router.push({
-              pathname: '/tutor-dashboard/create',
-              params: { courseId: item.id },
-            })
-          }
-        />
+        <View style={styles.actions}>
+          {archived ? (
+            <>
+              <Button
+                title={t('tutorDashboard.republish')}
+                size="sm"
+                loading={busy && republishMutation.isPending}
+                disabled={busy}
+                onPress={() =>
+                  runAction(
+                    item.id,
+                    () => republishMutation.mutateAsync(item.id),
+                    'tutorDashboard.republishFailed',
+                  )
+                }
+              />
+              <Button
+                title={t('tutorDashboard.restoreDraft')}
+                variant="secondary"
+                size="sm"
+                loading={busy && restoreMutation.isPending}
+                disabled={busy}
+                onPress={() =>
+                  runAction(
+                    item.id,
+                    () => restoreMutation.mutateAsync(item.id),
+                    'tutorDashboard.restoreFailed',
+                  )
+                }
+              />
+            </>
+          ) : (
+            <>
+              <Button
+                title={t('tutorDashboard.manage')}
+                variant="secondary"
+                size="sm"
+                onPress={() =>
+                  router.push({
+                    pathname: '/tutor-dashboard/create',
+                    params: { courseId: item.id },
+                  })
+                }
+              />
+              <Button
+                title={t('tutorDashboard.deleteCourse')}
+                variant="danger"
+                size="sm"
+                loading={busy && archiveMutation.isPending}
+                disabled={busy}
+                onPress={() => onDelete(item)}
+              />
+            </>
+          )}
+        </View>
       </View>
     );
   };
@@ -160,6 +263,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: spacing.md,
   },
+  cardTopRtl: {
+    flexDirection: 'row-reverse',
+  },
   title: { ...typography.subheading, color: colors.text, flex: 1 },
   meta: { ...typography.caption, color: colors.textSecondary },
   priceRow: {
@@ -168,5 +274,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: spacing.md,
   },
+  priceRowRtl: {
+    flexDirection: 'row-reverse',
+  },
   nextSession: { ...typography.caption, color: colors.textMuted },
+  actions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginTop: spacing.xs,
+  },
 });

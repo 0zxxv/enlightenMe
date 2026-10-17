@@ -17,6 +17,8 @@ export { PriceDisplay } from './PriceDisplay';
 export { Rating } from './Rating';
 export { ScheduleSelector } from './ScheduleSelector';
 export { SearchBar } from './SearchBar';
+export { CollapsibleSideTabBar } from './CollapsibleSideTabBar';
+export { RtlHorizontalScroll } from './RtlHorizontalScroll';
 export { SectionHeader } from './SectionHeader';
 export { Skeleton } from './Skeleton';
 export { TextInput } from './TextInput';

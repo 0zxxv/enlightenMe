@@ -1,11 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React, { useMemo } from 'react';
-import { Platform, StyleSheet } from 'react-native';
+import { StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { CollapsibleSideTabBar } from '@/components/CollapsibleSideTabBar';
 import { useLayout } from '@/hooks/useLayout';
 import { useTranslation } from '@/i18n';
-import { colors, spacing } from '@/theme';
+import { colors } from '@/theme';
 import { yogaDirection } from '@/utils/rtl';
 
 type VisibleTab = {
@@ -18,10 +19,11 @@ type VisibleTab = {
 
 export default function TutorDashboardLayout() {
   const { t, isRTL } = useTranslation();
-  const { isDesktop } = useLayout();
+  const { isDesktop, isTablet } = useLayout();
   const insets = useSafeAreaInsets();
 
-  const useSideNav = Platform.OS === 'web' && isDesktop;
+  // Side nav on laptop + iPad-sized viewports.
+  const sideNav = isDesktop || isTablet;
   const bottomPad = Math.max(insets.bottom, 8);
   const tabBarHeight = 56 + bottomPad;
 
@@ -70,33 +72,29 @@ export default function TutorDashboardLayout() {
         headerShown: true,
       },
     ];
-    return isRTL ? [...list].reverse() : list;
-  }, [t, isRTL]);
+    // Keep logical order; CollapsibleSideTabBar mirrors via flexDirection.
+    return list;
+  }, [t]);
 
   return (
     <Tabs
-      key={`tutor-tabs-${isRTL ? 'rtl' : 'ltr'}`}
+      key={`tutor-tabs-${isRTL ? 'rtl' : 'ltr'}-${sideNav ? 'side' : 'bottom'}`}
+      tabBar={sideNav ? (props) => <CollapsibleSideTabBar {...props} /> : undefined}
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarHideOnKeyboard: true,
-        tabBarShowLabel: false,
-        ...(useSideNav
+        tabBarShowLabel: !sideNav ? false : true,
+        ...(sideNav
           ? {
               tabBarPosition: 'left' as const,
+              // Width is owned by CollapsibleSideTabBar; keep style minimal.
               tabBarStyle: {
                 backgroundColor: colors.backgroundElevated,
-                borderRightColor: colors.border,
                 borderTopWidth: 0,
-                width: 72,
-                paddingTop: spacing.xl,
-                ...yogaDirection(isRTL),
-              },
-              tabBarItemStyle: {
-                justifyContent: 'center' as const,
-                alignItems: 'center' as const,
-                height: 52,
+                elevation: 0,
+                shadowOpacity: 0,
               },
             }
           : {
@@ -124,7 +122,7 @@ export default function TutorDashboardLayout() {
             headerTintColor: colors.primary,
             headerShadowVisible: false,
             tabBarIcon: ({ color, focused }) => (
-              <Ionicons name={tab.icon(focused)} color={color} size={24} />
+              <Ionicons name={tab.icon(focused)} color={color} size={22} />
             ),
           }}
         />

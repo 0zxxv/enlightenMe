@@ -2,6 +2,7 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from '@/i18n';
 import { colors, spacing, typography } from '@/theme';
+import { yogaDirection } from '@/utils/rtl';
 
 type Props = {
   title: string;
@@ -11,13 +12,20 @@ type Props = {
 
 /**
  * Title + optional "See all".
- * Uses explicit row-reverse for Arabic — Expo Go does not reliably honor Yoga `direction`.
+ * LTR: title left, action right. RTL: title right, action left.
+ * Isolates Yoga `direction` so parent RTL does not undo `row-reverse`.
  */
 export function SectionHeader({ title, actionLabel, onAction }: Props) {
   const { isRTL } = useTranslation();
 
   return (
-    <View style={[styles.row, { flexDirection: isRTL ? 'row-reverse' : 'row' }]}>
+    <View
+      style={[
+        styles.row,
+        yogaDirection(false),
+        { flexDirection: isRTL ? 'row-reverse' : 'row' },
+      ]}
+    >
       <Text
         style={[
           styles.title,

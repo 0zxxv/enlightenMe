@@ -139,6 +139,25 @@ coursesRouter.post(
   },
 );
 
+coursesRouter.post(
+  '/:id/restore',
+  requireAuth,
+  requireRoles(Role.Tutor, Role.Admin, Role.InstituteAdmin),
+  async (req: AuthedRequest, res, next) => {
+    try {
+      const data = await coursesService.setCourseStatus(
+        paramId(req.params.id),
+        req.user!.sub,
+        req.user!.role,
+        CourseStatus.Draft,
+      );
+      res.json({ data });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
 coursesRouter.get('/:id/sessions', optionalAuth, async (req: AuthedRequest, res, next) => {
   try {
     const data = await coursesService.listSessions(
