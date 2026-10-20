@@ -10,6 +10,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "export:web": "expo export --platform web",
+    "check:web-api-url": "node scripts/check-web-api-url.mjs",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "doctor": "npx expo-doctor",
